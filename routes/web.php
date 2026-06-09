@@ -90,9 +90,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/audit-logs/pdf', [DashboardController::class, 'exportPdfAuditLogs'])->name('admin.audit-logs.pdf');
 
 
-    # --- DASHBOARD PERAN LAIN (Fase Selanjutnya) ---
-    # Rute untuk menampilkan halaman awal (dashboard) khusus untuk wewenang Kepala Apotek
-    Route::get('/kepala/dashboard', [DashboardController::class, 'kepala'])->name('kepala.dashboard');
+    // --- GRUP RUTE KEPALA APOTEK ---
+    Route::prefix('kepala')->name('kepala.')->group(function () {
+        // Rute Dashboard yang sudah ada
+        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'kepala'])->name('dashboard');
+
+        // Rute-rute baru untuk menu Sidebar (Sementara kita arahkan ke fungsi placeholder)
+        Route::get('/validasi', [App\Http\Controllers\DashboardController::class, 'validasi'])->name('validasi');
+        Route::get('/stok', [App\Http\Controllers\DashboardController::class, 'stok'])->name('stok');
+        Route::get('/laporan', [App\Http\Controllers\DashboardController::class, 'laporan'])->name('laporan');
+
+        // Rute untuk Navbar Atas
+        Route::get('/notifikasi', [App\Http\Controllers\DashboardController::class, 'notifikasiKepala'])->name('notifikasi');
+        Route::get('/profil', [App\Http\Controllers\DashboardController::class, 'profilKepala'])->name('profil');
+    });
 
     # Rute untuk menampilkan halaman awal (dashboard) khusus untuk wewenang Petugas Apotek
     Route::get('/petugas/dashboard', [DashboardController::class, 'petugas'])->name('petugas.dashboard');
