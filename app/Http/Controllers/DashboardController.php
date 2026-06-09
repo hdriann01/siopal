@@ -456,11 +456,82 @@ class DashboardController extends Controller
         return $pdf->download('Laporan_Audit_Log_SIOPAL.pdf');
     }
 
-    # --- FUNGSI PENGEMBALIAN VIEW UNTUK PERAN LAIN ---
     public function kepala()
     {
-        # Mengembalikan halaman dashboard khusus untuk peran Kepala Apotek
-        return view('kepala.dashboard', ['title' => 'Dashboard Kepala Apotek']);
+        # 1. Menghitung jumlah Faktur Masuk yang berstatus 'Draft'
+        $menungguMasuk = DB::table('obat_masuk')->where('status_verifikasi', 'Draft')->count();
+
+        # 2. Menghitung jumlah Permintaan Keluar/Pemusnahan yang berstatus 'Menunggu'
+        $menungguKeluar = DB::table('obat_keluar')->where('status_otorisasi', 'Menunggu')->count();
+
+        # 3. Menghitung jumlah Obat Kritis (total_stok <= batas_stok_min)
+        $stokKritis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->count();
+
+        # --- LOGIKA BARU UNTUK GRAFIK KEDALUWARSA (DEFECTA) ---
+        $hariIni = \Carbon\Carbon::now();
+        $tigaBulan = \Carbon\Carbon::now()->addMonths(3);
+        $enamBulan = \Carbon\Carbon::now()->addMonths(6);
+
+        # Batch Kedaluwarsa (Tanggal ED sudah lewat dari hari ini)
+        $kadaluwarsa = DB::table('detail_masuk')->whereDate('tgl_kadaluwarsa', '<', $hariIni)->count();
+
+        # Batch Kritis (ED antara hari ini sampai 3 bulan ke depan)
+        $kritis = DB::table('detail_masuk')->whereBetween('tgl_kadaluwarsa', [$hariIni, $tigaBulan])->count();
+
+        # Batch Peringatan (ED antara 3 bulan sampai 6 bulan ke depan)
+        # Menggunakan addDay() agar tidak ada tanggal yang beririsan dengan variabel $tigaBulan
+        $peringatan = DB::table('detail_masuk')->whereBetween('tgl_kadaluwarsa', [$tigaBulan->copy()->addDay(), $enamBulan])->count();
+
+        # Batch Aman (ED masih lebih dari 6 bulan)
+        $aman = DB::table('detail_masuk')->whereDate('tgl_kadaluwarsa', '>', $enamBulan)->count();
+
+        # 5. Mengambil 5 daftar tugas terbaru untuk tabel
+        $fakturPending = DB::table('obat_masuk')
+            ->where('status_verifikasi', 'Draft')
+            ->orderBy('tanggal_masuk', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('kepala.dashboard', [
+            'title' => 'Dashboard Kepala Apotek',
+            'menungguMasuk' => $menungguMasuk,
+            'menungguKeluar' => $menungguKeluar,
+            'stokKritis' => $stokKritis,
+            'fakturPending' => $fakturPending,
+            # Data array baru untuk dikirim ke grafik Bar
+            'dataDefecta' => [$aman, $peringatan, $kritis, $kadaluwarsa]
+        ]);
+    }
+
+    # --- PLACEHOLDER HALAMAN KEPALA APOTEK ---
+    public function validasi()
+    {
+        return "Halaman Validasi Transaksi (Dalam Pengerjaan)";
+    }
+
+    public function stok()
+    {
+        return "Halaman Pantauan Stok & Defecta (Dalam Pengerjaan)";
+    }
+
+    public function laporan()
+    {
+        return "Halaman Pusat Laporan (Dalam Pengerjaan)";
+    }
+
+    public function notifikasiKepala()
+    {
+        return "Halaman Notifikasi Kepala Apotek (Dalam Pengerjaan)";
+    }
+
+    public function profilKepala()
+    {
+        return "Halaman Profil Kepala Apotek (Dalam Pengerjaan)";
+    }
+
+    public function pengaturanKepala()
+    {
+        return "Halaman Pengaturan Kepala Apotek (Dalam Pengerjaan)";
     }
 
     public function petugas()
