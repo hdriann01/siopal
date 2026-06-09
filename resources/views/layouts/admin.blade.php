@@ -125,7 +125,8 @@
             </div>
         </header>
 
-        <div class="p-6 md:p-8 max-w-7xl mx-auto">
+        <!-- KONTEN DINAMIS -->
+        <div class="p-6 md:p-8 w-full">
             @yield('content')
         </div>
     </main>
