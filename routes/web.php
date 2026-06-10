@@ -103,7 +103,6 @@ Route::middleware(['auth'])->group(function () {
         // Rute untuk Navbar Atas
         Route::get('/notifikasi', [App\Http\Controllers\DashboardController::class, 'notifikasiKepala'])->name('notifikasi');
         Route::get('/profil', [App\Http\Controllers\DashboardController::class, 'profilKepala'])->name('profil');
-        Route::get('/pengaturan', [App\Http\Controllers\DashboardController::class, 'pengaturanKepala'])->name('pengaturan');
     });
 
     // --- GRUP RUTE PETUGAS APOTEK ---
@@ -115,6 +114,5 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/opname', [App\Http\Controllers\DashboardController::class, 'stokOpname'])->name('opname');
         Route::get('/notifikasi', [App\Http\Controllers\DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
         Route::get('/profil', [App\Http\Controllers\DashboardController::class, 'profilPetugas'])->name('profil');
-        Route::get('/pengaturan', [App\Http\Controllers\DashboardController::class, 'pengaturanPetugas'])->name('pengaturan');
     });
 });

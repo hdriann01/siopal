@@ -119,11 +119,6 @@
                     @endif
                 </a>
 
-                <a href="{{ route('kepala.pengaturan') }}"
-                    class="text-on-surface-variant hover:bg-gray-100 p-2 rounded-full transition-colors hidden sm:block">
-                    <span class="material-symbols-outlined">settings</span>
-                </a>
-
                 <!-- Profil Pengguna -->
                 <div class="flex items-center gap-3 ml-2 border-l pl-4 border-outline-variant">
                     <div class="text-right hidden sm:block">
