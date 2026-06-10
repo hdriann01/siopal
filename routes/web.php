@@ -106,6 +106,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/pengaturan', [App\Http\Controllers\DashboardController::class, 'pengaturanKepala'])->name('pengaturan');
     });
 
-    # Rute untuk menampilkan halaman awal (dashboard) khusus untuk wewenang Petugas Apotek
-    Route::get('/petugas/dashboard', [DashboardController::class, 'petugas'])->name('petugas.dashboard');
+    // --- GRUP RUTE PETUGAS APOTEK ---
+    Route::prefix('petugas')->name('petugas.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'petugas'])->name('dashboard');
+        Route::get('/obat', [App\Http\Controllers\DashboardController::class, 'katalogObat'])->name('obat');
+        Route::get('/masuk', [App\Http\Controllers\DashboardController::class, 'obatMasuk'])->name('masuk');
+        Route::get('/keluar', [App\Http\Controllers\DashboardController::class, 'obatKeluar'])->name('keluar');
+        Route::get('/opname', [App\Http\Controllers\DashboardController::class, 'stokOpname'])->name('opname');
+        Route::get('/notifikasi', [App\Http\Controllers\DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
+        Route::get('/profil', [App\Http\Controllers\DashboardController::class, 'profilPetugas'])->name('profil');
+        Route::get('/pengaturan', [App\Http\Controllers\DashboardController::class, 'pengaturanPetugas'])->name('pengaturan');
+    });
 });

@@ -59,9 +59,12 @@
                             <input name="password" id="password" type="password" required
                                 class="w-full bg-gray-50 border border-gray-200 rounded-lg pl-4 pr-10 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
                                 placeholder="Buat kata sandi minimal 6 karakter">
-                            <button type="button"
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors">
-                                <span class="material-symbols-outlined text-[20px]">visibility</span>
+
+                            <!-- ID togglePassword ditambahkan di sini -->
+                            <button type="button" id="togglePassword"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-primary transition-colors">
+                                <!-- ID eyeIcon ditambahkan di sini -->
+                                <span id="eyeIcon" class="material-symbols-outlined text-[20px]">visibility_off</span>
                             </button>
                         </div>
                     </div>
@@ -80,4 +83,31 @@
             </form>
         </div>
     </div>
+
+    <!-- Script Logika Toggle Password -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+
+            togglePassword.addEventListener('click', function() {
+                // Mengecek tipe input saat ini
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Mengubah ikon dan warna dengan logika yang benar
+                if (type === 'text') {
+                    eyeIcon.textContent = 'visibility'; // Mata normal (Terbuka) = Teks Terlihat
+                    this.classList.remove('text-gray-400');
+                    this.classList.add('text-primary'); // Warna hijau menandakan sedang aktif dilihat
+                } else {
+                    eyeIcon.textContent =
+                    'visibility_off'; // Mata dicoret (Tertutup) = Teks Tersembunyi (Titik-titik)
+                    this.classList.remove('text-primary');
+                    this.classList.add('text-gray-400'); // Kembali ke warna abu-abu
+                }
+            });
+        });
+    </script>
 @endsection

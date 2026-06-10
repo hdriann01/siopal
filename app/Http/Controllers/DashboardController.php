@@ -536,7 +536,73 @@ class DashboardController extends Controller
 
     public function petugas()
     {
-        # Mengembalikan halaman dashboard khusus untuk peran Petugas Apotek
-        return view('petugas.dashboard', ['title' => 'Dashboard Petugas Apotek']);
+        // 1. Total Jenis Obat di Katalog
+        $totalObat = DB::table('obat')->count();
+
+        // 2. Stok Menipis (total_stok <= batas_stok_min)
+        $stokMenipis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->count();
+
+        // 3. Akan Kedaluwarsa (Batch yang ED-nya 6 bulan dari sekarang atau sudah lewat)
+        $enamBulanKeDepan = \Carbon\Carbon::now()->addMonths(6);
+        $akanKedaluwarsa = DB::table('detail_masuk')
+            ->whereDate('tgl_kadaluwarsa', '<=', $enamBulanKeDepan)
+            ->count();
+
+        // 4. Aktivitas Stok Terbaru (Menggabungkan 5 Obat Masuk & 5 Obat Keluar terakhir, lalu diurutkan)
+        $masuk = DB::table('obat_masuk')
+            ->join('detail_masuk', 'obat_masuk.id_masuk', '=', 'detail_masuk.id_masuk')
+            ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
+            ->select('obat_masuk.tanggal_masuk as tanggal', 'obat.nama_obat', 'detail_masuk.jumlah_masuk as jumlah', DB::raw("'Masuk' as tipe"))
+            ->orderBy('tanggal', 'desc')
+            ->limit(5)
+            ->get();
+
+        $keluar = DB::table('obat_keluar')
+            ->join('detail_keluar', 'obat_keluar.id_keluar', '=', 'detail_keluar.id_keluar')
+            ->join('obat', 'detail_keluar.id_obat', '=', 'obat.id_obat')
+            ->select('obat_keluar.tanggal_keluar as tanggal', 'obat.nama_obat', 'detail_keluar.jumlah_keluar as jumlah', DB::raw("'Keluar' as tipe"))
+            ->orderBy('tanggal', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Menggabungkan kedua koleksi dan mengambil 5 teratas secara keseluruhan
+        $aktivitasTerbaru = $masuk->concat($keluar)->sortByDesc('tanggal')->take(5);
+
+        return view('petugas.dashboard', compact('totalObat', 'stokMenipis', 'akanKedaluwarsa', 'aktivitasTerbaru'));
+    }
+
+    public function katalogObat()
+    {
+        return "Halaman Katalog Obat Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    public function obatMasuk()
+    {
+        return "Halaman Transaksi Obat Masuk Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    public function obatKeluar()
+    {
+        return "Halaman Transaksi Obat Keluar Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    public function stokOpname()
+    {
+        return "Halaman Stok Opname Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    public function notifikasiPetugas()
+    {
+        return "Halaman Notifikasi Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    public function profilPetugas()
+    {
+        return "Halaman Profil Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    public function pengaturanPetugas()
+    {
+        return "Halaman Pengaturan Petugas Apotek (Dalam Pengerjaan)";
     }
 }
