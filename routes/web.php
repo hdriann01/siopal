@@ -1,118 +1,137 @@
 <?php
 
-# Mengimpor AuthController agar rute bisa menggunakan fungsi login dan logout
+# =====================================================================
+# 1. BAGIAN PERSIAPAN (IMPOR KELAS CONTROLLER)
+# =====================================================================
+
+# Mengimpor AuthController agar rute bisa memanggil fungsi Login dan Logout
 use App\Http\Controllers\AuthController;
-# Mengimpor facade Route bawaan Laravel untuk mendaftarkan URL aplikasi
+# Mengimpor facade Route bawaan Laravel untuk mendaftarkan alamat URL aplikasi
 use Illuminate\Support\Facades\Route;
-# Mengimpor DashboardController agar rute bisa menggunakan fungsi-fungsi halaman aplikasi
+# Mengimpor DashboardController untuk menangani semua tampilan halaman utama aplikasi
 use App\Http\Controllers\DashboardController;
 
-# --- RUTE DASAR ---
-# Jika pengguna mengakses URL root atau utama web (misal: localhost:8000/),
-# sistem akan langsung mengarahkannya (redirect) secara otomatis ke halaman '/login'
+# =====================================================================
+# 2. RUTE DASAR & ALAMAT UTAMA
+# =====================================================================
+
+# Jika ada orang mengakses alamat utama (misal: localhost:8000/),
+# sistem akan langsung 'melemparnya' (redirect) secara otomatis ke halaman login.
 Route::get('/', function () {
     return redirect('/login');
 });
 
-# --- RUTE AUTENTIKASI (LOGIN & LOGOUT) ---
-# Rute (GET) untuk menampilkan antarmuka form login. Diberi nama 'login' agar mudah dikenali oleh middleware autentikasi.
+# =====================================================================
+# 3. RUTE AUTENTIKASI (PINTU MASUK & KELUAR)
+# =====================================================================
+
+# Rute (GET) untuk menampilkan desain halaman form login.
+# Nama 'login' diberikan agar sistem Laravel mengenali ini sebagai pintu masuk utama.
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 
-# Rute (POST) untuk menangani pengiriman data username dan password yang diketik dari form login
+# Rute (POST) untuk mengirimkan data username & password yang diketik user ke otak sistem (Controller).
 Route::post('/login', [AuthController::class, 'login']);
 
-# Rute (POST) untuk menangani proses keluar (logout) dari sistem, menghancurkan sesi yang sedang aktif.
+# Rute (POST) untuk menghancurkan sesi (session) dan mengeluarkan pengguna dari aplikasi.
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+# =====================================================================
+# 4. GRUP RUTE TERLINDUNGI (KHUSUS PENGGUNA YANG SUDAH LOGIN)
+# =====================================================================
 
-# --- GRUP RUTE TERLINDUNGI (MIDDLEWARE AUTH) ---
-# Semua rute di dalam grup ini WAJIB melewati pengecekan middleware 'auth'.
-# Artinya, hanya pengguna yang sudah berhasil login yang diizinkan untuk mengakses URL di bawah ini.
+# Seluruh rute di bawah ini dibungkus middleware 'auth', artinya orang yang belum login
+# dilarang keras mencoba mengakses URL-URL ini secara manual.
 Route::middleware(['auth'])->group(function () {
 
-    # Rute untuk menampilkan halaman dashboard ringkasan utama bagi Administrator
+    # --- MENU UTAMA & DASHBOARD ADMIN ---
+    # Membuka halaman ringkasan data statistik utama bagi peran Administrator.
     Route::get('/admin/dashboard', [DashboardController::class, 'admin'])->name('admin.dashboard');
 
-    # --- MANAJEMEN PENGGUNA ---
-    # Rute untuk menampilkan tabel daftar semua pengguna dan menangani fitur pencarian
+    # --- MODUL MANAJEMEN PENGGUNA ---
+    # Rute untuk melihat tabel daftar staf apotek dan melakukan pencarian nama.
     Route::get('/admin/manajemen-user', [DashboardController::class, 'manajemenUser'])->name('admin.manajemen-user');
 
-    # Rute (GET) untuk menampilkan form kosong untuk menambah pengguna baru
+    # Menampilkan form kosong untuk mendaftarkan pegawai baru ke sistem.
     Route::get('/admin/tambah-user', [DashboardController::class, 'tambahUser'])->name('admin.tambah-user');
 
-    # Rute (POST) untuk menangani proses penyimpanan data pengguna baru tersebut ke dalam database
+    # Menyimpan data pegawai baru tersebut ke dalam database setelah tombol 'Simpan' ditekan.
     Route::post('/admin/tambah-user', [DashboardController::class, 'simpanUser'])->name('admin.simpan-user');
 
-    # Rute (GET) untuk menampilkan form edit pengguna beserta data lamanya, spesifik berdasarkan {id} pengguna
+    # Membuka form untuk mengubah data staf tertentu berdasarkan ID-nya.
     Route::get('/admin/edit-user/{id}', [DashboardController::class, 'editUser'])->name('admin.edit-user');
 
-    # Rute (PUT) untuk memproses perubahan (update) data profil pengguna ke tabel database
+    # Memproses perubahan data staf tersebut ke dalam tabel database (metode PUT).
     Route::put('/admin/update-user/{id}', [DashboardController::class, 'updateUser'])->name('admin.update-user');
 
-    # Rute (GET) untuk menampilkan form reset password khusus pengguna tertentu berdasarkan {id}
+    # Membuka form khusus untuk mengganti password staf yang lupa atau bermasalah.
     Route::get('/admin/reset-password/{id}', [DashboardController::class, 'resetPassword'])->name('admin.reset-password');
 
-    # Rute (PUT) untuk mengenkripsi dan menyimpan password baru pengguna yang direset ke database
+    # Memproses penyimpanan password baru yang sudah dienkripsi (Hash) ke database.
     Route::put('/admin/update-password/{id}', [DashboardController::class, 'updatePassword'])->name('admin.update-password');
 
-    # Rute (GET) untuk menampilkan halaman peringatan sebelum pengguna benar-benar dihapus
+    # Menampilkan layar konfirmasi 'Apakah anda yakin?' sebelum data benar-benar dihapus.
     Route::get('/admin/hapus-user/{id}', [DashboardController::class, 'konfirmasiHapus'])->name('admin.konfirmasi-hapus');
 
-    # Rute (DELETE) untuk mengeksekusi penghapusan permanen data baris pengguna dari database
+    # Menghapus baris data staf tersebut secara permanen dari database (metode DELETE).
     Route::delete('/admin/proses-hapus/{id}', [DashboardController::class, 'prosesHapus'])->name('admin.proses-hapus');
 
-    # --- PUSAT NOTIFIKASI ---
-    # Rute (GET) untuk menampilkan daftar notifikasi sistem, termasuk memfilter tipe notifikasinya
+    # --- MODUL PUSAT NOTIFIKASI ---
+    # Menampilkan daftar seluruh alarm dan peringatan sistem (keamanan/stok).
     Route::get('/admin/notifikasi', [DashboardController::class, 'notifikasi'])->name('admin.notifikasi');
 
-    # Rute (POST) untuk mengeksekusi perintah "Tandai semua dibaca" yang mengubah status notifikasi
+    # Mengubah status seluruh notifikasi menjadi 'Sudah Dibaca' sekaligus.
     Route::post('/admin/notifikasi/baca-semua', [DashboardController::class, 'bacaSemuaNotifikasi'])->name('admin.baca-semua-notif');
 
-    # --- PENGATURAN SISTEM ---
-    # Rute (GET) untuk menampilkan antarmuka form pengaturan identitas aplikasi dan keamanan
+    # --- MODUL PENGATURAN & PROFIL ---
+    # Mengelola identitas apotek dan saklar keamanan global aplikasi.
     Route::get('/admin/pengaturan', [DashboardController::class, 'pengaturan'])->name('admin.pengaturan');
 
-    # Rute (PUT) untuk menyimpan dan menimpa pembaruan konfigurasi pengaturan sistem ke database
+    # Menyimpan pembaruan konfigurasi pengaturan sistem.
     Route::put('/admin/pengaturan/update', [DashboardController::class, 'updatePengaturan'])->name('admin.update-pengaturan');
 
-    # --- PROFIL PRIBADI ---
-    # Rute (GET) untuk menampilkan informasi detail profil milik akun yang sedang melakukan login saat ini
+    # Melihat data profil pribadi dari akun yang sedang login saat ini.
     Route::get('/admin/profil', [DashboardController::class, 'profil'])->name('admin.profil');
 
-    # Rute (PUT) untuk memproses pembaruan data (seperti nama & username) dari profil mandiri pengguna
+    # Memperbarui informasi mandiri pengguna (seperti ganti nama/username).
     Route::put('/admin/profil/update', [DashboardController::class, 'updateProfil'])->name('admin.update-profil');
 
-    # --- LOG AUDIT SISTEM ---
-    # Rute (GET) untuk menampilkan tabel riwayat aktivitas (CCTV sistem) untuk semua aksi penting
+    # --- MODUL LOG AUDIT SISTEM ---
+    # Menampilkan riwayat rekam jejak aktivitas (CCTV digital) seluruh pengguna.
     Route::get('/admin/audit-logs', [DashboardController::class, 'auditLogs'])->name('admin.audit-logs');
 
-    # Rute (GET) khusus untuk merender (generate) file PDF laporan Log Audit dan langsung mendownloadnya
+    # Mencetak data riwayat aktivitas tersebut ke dalam dokumen PDF untuk didownload.
     Route::get('/admin/audit-logs/pdf', [DashboardController::class, 'exportPdfAuditLogs'])->name('admin.audit-logs.pdf');
 
+    # =====================================================================
+    # 5. GRUP RUTE KEPALA APOTEK (FOLDER AWAL: KEPALA/)
+    # =====================================================================
 
-    // --- GRUP RUTE KEPALA APOTEK ---
+    # Seluruh rute di grup ini memiliki awalan URL /kepala/ (misal: /kepala/dashboard).
     Route::prefix('kepala')->name('kepala.')->group(function () {
-        // Rute Dashboard yang sudah ada
-        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'kepala'])->name('dashboard');
-
-        // Rute-rute baru untuk menu Sidebar (Sementara kita arahkan ke fungsi placeholder)
-        Route::get('/validasi', [App\Http\Controllers\DashboardController::class, 'validasi'])->name('validasi');
-        Route::get('/stok', [App\Http\Controllers\DashboardController::class, 'stok'])->name('stok');
-        Route::get('/laporan', [App\Http\Controllers\DashboardController::class, 'laporan'])->name('laporan');
-
-        // Rute untuk Navbar Atas
-        Route::get('/notifikasi', [App\Http\Controllers\DashboardController::class, 'notifikasiKepala'])->name('notifikasi');
-        Route::get('/profil', [App\Http\Controllers\DashboardController::class, 'profilKepala'])->name('profil');
+        # Halaman dashboard khusus untuk manajer (Kepala Apotek).
+        Route::get('/dashboard', [DashboardController::class, 'kepala'])->name('dashboard');
+        # Rute-rute modul yang akan dikerjakan selanjutnya (placeholder).
+        Route::get('/validasi', [DashboardController::class, 'validasi'])->name('validasi');
+        Route::get('/stok', [DashboardController::class, 'stok'])->name('stok');
+        Route::get('/laporan', [DashboardController::class, 'laporan'])->name('laporan');
+        Route::get('/notifikasi', [DashboardController::class, 'notifikasiKepala'])->name('notifikasi');
+        Route::get('/profil', [DashboardController::class, 'profilKepala'])->name('profil');
     });
 
-    // --- GRUP RUTE PETUGAS APOTEK ---
+    # =====================================================================
+    # 6. GRUP RUTE PETUGAS APOTEK (FOLDER AWAL: PETUGAS/)
+    # =====================================================================
+
+    # Seluruh rute di grup ini memiliki awalan URL /petugas/ (misal: /petugas/obat).
     Route::prefix('petugas')->name('petugas.')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'petugas'])->name('dashboard');
-        Route::get('/obat', [App\Http\Controllers\DashboardController::class, 'katalogObat'])->name('obat');
-        Route::get('/masuk', [App\Http\Controllers\DashboardController::class, 'obatMasuk'])->name('masuk');
-        Route::get('/keluar', [App\Http\Controllers\DashboardController::class, 'obatKeluar'])->name('keluar');
-        Route::get('/opname', [App\Http\Controllers\DashboardController::class, 'stokOpname'])->name('opname');
-        Route::get('/notifikasi', [App\Http\Controllers\DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
-        Route::get('/profil', [App\Http\Controllers\DashboardController::class, 'profilPetugas'])->name('profil');
+        # Halaman dashboard operasional harian.
+        Route::get('/dashboard', [DashboardController::class, 'petugas'])->name('dashboard');
+        # Rute-rute modul operasional yang akan dikerjakan selanjutnya (placeholder).
+        Route::get('/obat', [DashboardController::class, 'katalogObat'])->name('obat');
+        Route::get('/masuk', [DashboardController::class, 'obatMasuk'])->name('masuk');
+        Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
+        Route::get('/opname', [DashboardController::class, 'stokOpname'])->name('opname');
+        Route::get('/notifikasi', [DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
+        Route::get('/profil', [DashboardController::class, 'profilPetugas'])->name('profil');
     });
 });

@@ -92,7 +92,6 @@
             <div class="flex items-center space-x-4 ml-auto">
 
                 @php
-                    // Menghitung jumlah notifikasi yang belum dibaca secara global
                     $unreadNotifCount = \App\Models\Notifikasi::where('status_baca', 'Belum')->count();
                 @endphp
 
@@ -125,7 +124,6 @@
             </div>
         </header>
 
-        <!-- KONTEN DINAMIS -->
         <div class="p-6 md:p-8 w-full">
             @yield('content')
         </div>

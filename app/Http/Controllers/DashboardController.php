@@ -1,99 +1,105 @@
 <?php
 
-# Mendefinisikan namespace tempat controller ini berada agar dikenali oleh sistem Laravel
+# =====================================================================
+# BAGIAN 1: PERSIAPAN (IMPOR KELAS DAN PENGATURAN LOKASI)
+# =====================================================================
+
+# Mendefinisikan namespace (alamat folder) tempat controller ini berada agar dikenali oleh sistem Laravel
 namespace App\Http\Controllers;
 
-# Mengimpor class Request untuk menangkap data inputan dari form atau URL
+# Mengimpor class Request untuk menangkap data ketikan/inputan dari form atau URL
 use Illuminate\Http\Request;
-# Mengimpor facade Auth untuk mendapatkan data pengguna yang sedang login saat ini
+# Mengimpor alat (Auth) untuk mendapatkan data pengguna yang sedang login saat ini
 use Illuminate\Support\Facades\Auth;
-# Mengimpor facade DB untuk melakukan query langsung ke database (Query Builder)
+# Mengimpor alat (DB) untuk melakukan pencarian/perintah langsung ke database tanpa model
 use Illuminate\Support\Facades\DB;
-# Mengimpor model Pengguna untuk berinteraksi dengan tabel 'pengguna'
+# Mengimpor model Pengguna untuk berinteraksi dengan tabel 'pengguna' di database
 use App\Models\Pengguna;
-# Mengimpor model LogAudit untuk berinteraksi dengan tabel 'log_audit'
+# Mengimpor model LogAudit untuk berinteraksi dengan tabel 'log_audit' (rekam jejak)
 use App\Models\LogAudit;
-# Mengimpor model Notifikasi untuk berinteraksi dengan tabel 'notifikasi'
+# Mengimpor model Notifikasi untuk berinteraksi dengan tabel 'notifikasi' (alarm sistem)
 use App\Models\Notifikasi;
-# Mengimpor model Pengaturan untuk berinteraksi dengan tabel 'pengaturan'
+# Mengimpor model Pengaturan untuk berinteraksi dengan tabel 'pengaturan' (konfigurasi aplikasi)
 use App\Models\Pengaturan;
-# Mengimpor facade Hash untuk mengenkripsi (hashing) password demi keamanan
+# Mengimpor alat (Hash) untuk mengenkripsi/mengacak teks password demi keamanan
 use Illuminate\Support\Facades\Hash;
-# Mengimpor helper Str untuk menghasilkan string acak (random)
+# Mengimpor alat pembantu (Str) untuk menghasilkan teks acak (random string)
 use Illuminate\Support\Str;
-# Mengimpor facade Pdf dari library DomPDF untuk membuat dan mengunduh file PDF
+# Mengimpor alat pembuat PDF (Pdf) dari library DomPDF untuk mengekspor laporan
 use Barryvdh\DomPDF\Facade\Pdf;
 
 # Mendeklarasikan class DashboardController yang mewarisi fitur Controller bawaan Laravel
 class DashboardController extends Controller
 {
-    # --- FUNGSI UNTUK DASHBOARD UTAMA ADMINISTRATOR ---
-    # --- FUNGSI UNTUK DASHBOARD UTAMA ADMINISTRATOR ---
+    # =====================================================================
+    # BAGIAN 2: FUNGSI-FUNGSI KHUSUS ADMINISTRATOR
+    # =====================================================================
+
+    # --- FUNGSI UNTUK MENAMPILKAN DASHBOARD UTAMA ADMINISTRATOR ---
     public function admin()
     {
-        # Menghitung total keseluruhan data (Statistik Angka Biasa)
-        $totalPengguna = Pengguna::count();
-        $totalObat = DB::table('obat')->count();
-        $totalMasuk = DB::table('obat_masuk')->count();
-        $totalKeluar = DB::table('obat_keluar')->count();
+        # Menghitung total keseluruhan data untuk ditampilkan di kotak atas (Statistik Angka Biasa)
+        $totalPengguna = Pengguna::count();             # Berapa banyak akun pengguna?
+        $totalObat = DB::table('obat')->count();        # Berapa banyak jenis obat di katalog?
+        $totalMasuk = DB::table('obat_masuk')->count(); # Berapa banyak nota masuk?
+        $totalKeluar = DB::table('obat_keluar')->count(); # Berapa banyak nota keluar?
 
-        # --- LOGIKA UNTUK GRAFIK TREN (7 HARI TERAKHIR) ---
-        $labelTanggal = []; # Array untuk menyimpan label tanggal di sumbu X (bawah) grafik
-        $dataMasuk = [];    # Array untuk menyimpan data jumlah obat masuk di sumbu Y (kiri)
-        $dataKeluar = [];   # Array untuk menyimpan data jumlah obat keluar di sumbu Y (kiri)
+        # --- LOGIKA UNTUK MEMBUAT GRAFIK TREN (7 HARI TERAKHIR) ---
+        $labelTanggal = []; # Menyiapkan keranjang untuk tulisan tanggal di bawah grafik (Sumbu X)
+        $dataMasuk = [];    # Menyiapkan keranjang untuk titik angka obat masuk (Sumbu Y)
+        $dataKeluar = [];   # Menyiapkan keranjang untuk titik angka obat keluar (Sumbu Y)
 
-        # Melakukan perulangan (looping) mundur dari 6 hari yang lalu sampai hari ini (total 7 titik data)
+        # Melakukan hitung mundur dari 6 hari yang lalu sampai hari ini (total 7 hari)
         for ($i = 6; $i >= 0; $i--) {
-            # Mengambil tanggal acuan (format: YYYY-MM-DD)
+            # Mengambil tanggal acuan persisnya (format: Tahun-Bulan-Hari)
             $tanggal = \Carbon\Carbon::now()->subDays($i)->format('Y-m-d');
 
-            # Memformat tanggal menjadi lebih ringkas (contoh: "04 Jun") untuk ditampilkan di label grafik
+            # Mengubah format tanggal menjadi lebih pendek (contoh: "04 Jun") untuk label grafik
             $labelTanggal[] = \Carbon\Carbon::now()->subDays($i)->format('d M');
 
-            # Menghitung jumlah transaksi masuk berdasarkan kolom 'tanggal_masuk'
+            # Menghitung ada berapa transaksi masuk pada tanggal acuan tersebut
             $masuk = DB::table('obat_masuk')->whereDate('tanggal_masuk', $tanggal)->count();
-            $dataMasuk[] = $masuk;
+            $dataMasuk[] = $masuk; # Memasukkan hasilnya ke dalam keranjang data masuk
 
-            # Menghitung jumlah transaksi keluar berdasarkan kolom 'tanggal_keluar'
+            # Menghitung ada berapa transaksi keluar pada tanggal acuan tersebut
             $keluar = DB::table('obat_keluar')->whereDate('tanggal_keluar', $tanggal)->count();
-            $dataKeluar[] = $keluar;
+            $dataKeluar[] = $keluar; # Memasukkan hasilnya ke dalam keranjang data keluar
         }
 
-        # Mengembalikan halaman dashboard sekaligus mengirimkan data-data array grafik tadi
+        # Menampilkan halaman dashboard admin dan mengirimkan semua data yang sudah dihitung di atas
         return view('admin.dashboard', [
             'title' => 'Dashboard Administrator',
             'totalPengguna' => $totalPengguna,
             'totalObat' => $totalObat,
             'totalMasuk' => $totalMasuk,
             'totalKeluar' => $totalKeluar,
-            # Data untuk grafik tren obat
-            'labelTanggal' => $labelTanggal,
-            'dataMasuk' => $dataMasuk,
-            'dataKeluar' => $dataKeluar,
+            'labelTanggal' => $labelTanggal, # Mengirim data Sumbu X grafik
+            'dataMasuk' => $dataMasuk,       # Mengirim data garis hijau grafik
+            'dataKeluar' => $dataKeluar,     # Mengirim data garis kuning grafik
         ]);
     }
 
-    # --- FUNGSI UNTUK HALAMAN MANAJEMEN PENGGUNA (BACA DATA & PENCARIAN) ---
+    # --- FUNGSI UNTUK HALAMAN DAFTAR PENGGUNA (BACA DATA & PENCARIAN) ---
     public function manajemenUser(Request $request)
     {
-        # Menangkap parameter pencarian 'search' dari URL (jika pengguna mengetik di kolom pencarian)
+        # Menangkap kata kunci yang diketik admin di kotak pencarian
         $search = $request->query('search');
 
-        # Mengecek apakah ada kata kunci pencarian yang dimasukkan
+        # Mengecek apakah admin mengetik sesuatu?
         if ($search) {
-            # Jika ada, cari data di tabel pengguna yang nama_lengkap atau username-nya mirip dengan kata kunci
+            # Jika ada, cari data pengguna yang nama atau username-nya mengandung kata kunci tersebut
             $pengguna = Pengguna::where('nama_lengkap', 'like', '%' . $search . '%')
                 ->orWhere('username', 'like', '%' . $search . '%')
                 ->get();
         } else {
-            # Jika kotak pencarian kosong, ambil seluruh data pengguna tanpa terkecuali
+            # Jika kotak pencarian kosong, ambil semua data pengguna tanpa terkecuali
             $pengguna = Pengguna::all();
         }
 
-        # Menghitung total jumlah pengguna yang ada di database
+        # Menghitung total jumlah seluruh pengguna di sistem
         $totalPengguna = Pengguna::count();
 
-        # Menampilkan halaman manajemen-user sambil mengirim data hasil query
+        # Tampilkan halaman tabel pengguna beserta datanya
         return view('admin.manajemen-user', [
             'title' => 'Manajemen Pengguna',
             'pengguna' => $pengguna,
@@ -101,82 +107,82 @@ class DashboardController extends Controller
         ]);
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN FORM TAMBAH PENGGUNA BARU ---
+    # --- FUNGSI UNTUK MEMBUKA FORM TAMBAH PENGGUNA ---
     public function tambahUser()
     {
-        # Mengembalikan tampilan form kosong untuk menambah pengguna
+        # Cukup tampilkan halaman form kosong
         return view('admin.tambah-user', ['title' => 'Tambah Pengguna Baru']);
     }
 
-    # --- FUNGSI UNTUK MENYIMPAN DATA PENGGUNA BARU KE DATABASE ---
+    # --- FUNGSI UNTUK MENYIMPAN PENGGUNA BARU KE DATABASE ---
     public function simpanUser(Request $request)
     {
-        # Memvalidasi inputan form; memastikan data wajib diisi, sesuai format, dan username tidak boleh kembar
+        # Mengecek aturan main: wajib diisi, tidak boleh lebih dari 100 huruf, dan username harus unik (belum ada yang pakai)
         $request->validate([
             'nama_lengkap' => 'required|string|max:100',
             'username'     => 'required|string|max:50|unique:pengguna,username',
             'peran'        => 'required|in:Administrator,Kepala Apotek,Petugas Apotek',
-            'password'     => 'required|min:6', # Password minimal 6 karakter
+            'password'     => 'required|min:6', # Password minimal harus 6 karakter
         ]);
 
-        # Menyimpan data pengguna baru tersebut ke dalam tabel 'pengguna'
+        # Menyimpan data baru tersebut ke dalam tabel 'pengguna'
         Pengguna::create([
-            # Membuat ID Pengguna unik otomatis (contoh: USRX1Y2Z3)
+            # Membuat ID otomatis (Contoh: "USR" ditambah 7 karakter acak kapital seperti "USRX1Y2Z3")
             'id_pengguna'  => 'USR' . strtoupper(Str::random(7)),
             'nama_lengkap' => $request->nama_lengkap,
             'username'     => $request->username,
-            # Mengacak password menjadi teks acak rahasia agar tidak bisa dibaca langsung di database
+            # Mengacak teks password asli menjadi kode rahasia yang tidak bisa dibaca siapapun
             'password'     => Hash::make($request->password),
             'peran'        => $request->peran,
         ]);
 
-        # Mencatat aktivitas penambahan pengguna ini ke tabel log_audit
+        # Mencatat ke buku log bahwa admin ini baru saja menambahkan pengguna baru
         LogAudit::create([
-            'id_pengguna' => Auth::user()->id_pengguna, # ID admin yang sedang menambahkan data
+            'id_pengguna' => Auth::user()->id_pengguna, # Siapa yang melakukan?
             'aktivitas'   => "Menambahkan pengguna baru: " . $request->nama_lengkap,
             'alamat_ip'   => $request->ip(),
             'status'      => 'Success',
             'created_at'  => now(),
         ]);
 
-        # Mengarahkan kembali ke halaman manajemen user dengan membawa pesan sukses
+        # Kembalikan ke halaman daftar pengguna sambil membawa pesan sukses warna hijau
         return redirect()->route('admin.manajemen-user')->with('success', 'Pengguna berhasil ditambahkan!');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN FORM EDIT PENGGUNA (BERDASARKAN ID) ---
+    # --- FUNGSI UNTUK MEMBUKA FORM EDIT PENGGUNA TERTENTU ---
     public function editUser(string $id)
     {
-        # Mencari pengguna spesifik berdasarkan ID, tampilkan error 404 jika tidak ditemukan
+        # Cari pengguna berdasarkan ID-nya, jika tidak ada, sistem akan otomatis error 404
         $user = Pengguna::findOrFail($id);
 
-        # Tampilkan form edit-user beserta data lama pengguna tersebut
+        # Tampilkan form edit dan kirimkan data lama pengguna tersebut agar mengisi kolom secara otomatis
         return view('admin.edit-user', [
             'title' => 'Edit Pengguna',
             'user' => $user
         ]);
     }
 
-    # --- FUNGSI UNTUK MEMPERBARUI (UPDATE) DATA PROFIL PENGGUNA DI DATABASE ---
+    # --- FUNGSI UNTUK MEMPERBARUI (UPDATE) DATA PENGGUNA ---
     public function updateUser(Request $request, string $id)
     {
-        # Mencari pengguna yang akan diubah datanya
+        # Cari pengguna yang datanya mau ditimpa/diperbarui
         $user = Pengguna::findOrFail($id);
 
-        # Memvalidasi inputan. Pengecualian pada 'unique' username: ia boleh memakai username miliknya sendiri
+        # Cek aturan main. Pengecualian pada username: dia boleh pakai namanya sendiri, tapi tidak boleh pakai milik orang lain
         $request->validate([
             'nama_lengkap' => 'required|string|max:100',
             'username'     => 'required|string|max:50|unique:pengguna,username,' . $id . ',id_pengguna',
             'peran'        => 'required|in:Administrator,Kepala Apotek,Petugas Apotek',
         ]);
 
-        # Melakukan proses update (timpa data lama dengan data baru)
+        # Timpa data lama di database dengan data baru dari form
         $user->update([
             'nama_lengkap' => $request->nama_lengkap,
             'username'     => $request->username,
             'peran'        => $request->peran,
         ]);
 
-        # Mencatat aktivitas pengubahan data profil ini ke tabel log_audit
+        # Mencatat aktivitas edit ini ke tabel log audit
         LogAudit::create([
             'id_pengguna' => Auth::user()->id_pengguna,
             'aktivitas'   => "Memperbarui data profil pengguna: " . $request->nama_lengkap,
@@ -185,40 +191,40 @@ class DashboardController extends Controller
             'created_at'  => now(),
         ]);
 
-        # Mengarahkan kembali ke halaman manajemen dengan pesan sukses
+        # Kembalikan ke halaman tabel pengguna
         return redirect()->route('admin.manajemen-user')->with('success', 'Data pengguna berhasil diperbarui!');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN FORM RESET PASSWORD PENGGUNA TERTENTU ---
+    # --- FUNGSI UNTUK MEMBUKA FORM RESET PASSWORD ---
     public function resetPassword(string $id)
     {
-        # Cari pengguna berdasarkan ID
+        # Cari pengguna mana yang mau di-reset passwordnya
         $user = Pengguna::findOrFail($id);
 
-        # Tampilkan halaman khusus reset password
+        # Tampilkan form khusus reset password
         return view('admin.reset-password', [
             'title' => 'Reset Password',
             'user' => $user
         ]);
     }
 
-    # --- FUNGSI UNTUK MEMPERBARUI PASSWORD PENGGUNA ---
+    # --- FUNGSI UNTUK MENYIMPAN PASSWORD HASIL RESET ---
     public function updatePassword(Request $request, string $id)
     {
-        # Cari pengguna berdasarkan ID
+        # Cari penggunanya
         $user = Pengguna::findOrFail($id);
 
-        # Validasi bahwa password baru minimal 6 karakter dan kolom konfirmasi password harus cocok ('confirmed')
+        # Syarat wajib: password minimal 6 karakter, dan inputan 'password' harus sama persis dengan 'password_confirmation'
         $request->validate([
             'password' => 'required|min:6|confirmed',
         ]);
 
-        # Update password di database dengan format terenkripsi (Hash)
+        # Simpan password barunya dengan keadaan diacak (Hash)
         $user->update([
             'password' => Hash::make($request->password),
         ]);
 
-        # Catat aktivitas peresetan sandi ini ke log_audit
+        # Catat aktivitas peresetan sandi ini
         LogAudit::create([
             'id_pengguna' => Auth::user()->id_pengguna,
             'aktivitas'   => "Mereset password pengguna: " . $user->nama_lengkap,
@@ -227,36 +233,34 @@ class DashboardController extends Controller
             'created_at'  => now(),
         ]);
 
-        # Kembali ke halaman manajemen user dengan pesan sukses
         return redirect()->route('admin.manajemen-user')->with('success', 'Password pengguna berhasil direset!');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN KONFIRMASI SEBELUM MENGHAPUS PENGGUNA ---
+    # --- FUNGSI UNTUK MENAMPILKAN PERINGATAN HAPUS DATA ---
     public function konfirmasiHapus(string $id)
     {
-        # Cari pengguna berdasarkan ID
         $user = Pengguna::findOrFail($id);
 
-        # Tampilkan halaman konfirmasi
+        # Tampilkan layar konfirmasi apakah admin benar-benar yakin ingin menghapus
         return view('admin.hapus-user', [
             'title' => 'Konfirmasi Hapus',
             'user' => $user
         ]);
     }
 
-    # --- FUNGSI UNTUK MENGHAPUS DATA PENGGUNA SECARA PERMANEN ---
+    # --- FUNGSI UNTUK MENGEKSEKUSI PENGHAPUSAN PERMANEN ---
     public function prosesHapus(string $id, Request $request)
     {
-        # Cari pengguna yang akan dihapus
+        # Cari pengguna yang divonis hapus
         $user = Pengguna::findOrFail($id);
 
-        # Simpan nama lengkap pengguna ke variabel cadangan sebelum datanya lenyap dari database
+        # Simpan nama lengkapnya ke variabel sementara (karena setelah dihapus, kita tidak bisa memanggil namanya lagi)
         $namaYangDihapus = $user->nama_lengkap;
 
-        # Eksekusi perintah penghapusan baris data tersebut dari tabel pengguna
+        # Hapus baris data pengguna tersebut secara permanen dari tabel
         $user->delete();
 
-        # Catat aktivitas penghapusan ini ke log audit menggunakan nama yang sudah kita simpan tadi
+        # Catat pembunuhan karakter ini (penghapusan data) ke log audit menggunakan nama yang sudah kita amankan tadi
         LogAudit::create([
             'id_pengguna' => Auth::user()->id_pengguna,
             'aktivitas'   => "Menghapus permanen pengguna: " . $namaYangDihapus,
@@ -265,113 +269,111 @@ class DashboardController extends Controller
             'created_at'  => now(),
         ]);
 
-        # Kembali ke halaman manajemen dengan pesan sukses
         return redirect()->route('admin.manajemen-user')->with('success', 'Data pengguna berhasil dihapus permanen.');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN LOG AUDIT SISTEM ---
+    # --- FUNGSI UNTUK MENAMPILKAN TABEL RIWAYAT LOG AUDIT ---
     public function auditLogs(Request $request)
     {
-        # Tangkap parameter filter 'role' dari URL dropdown
+        # Mengecek apakah admin sedang memilih filter peran dari kotak dropdown (misal: hanya mau lihat log Petugas)
         $role = $request->query('role');
 
-        # Mulai menyusun query: Ambil log audit beserta data penggunanya (relasi join), urutkan dari yang paling baru
+        # Siapkan perintah pencarian: Ambil semua data log BERSAMA data profil penggunanya, urutkan dari jam terbaru
         $query = LogAudit::with('pengguna')->orderBy('created_at', 'desc');
 
-        # Jika ada filter peran yang dipilih, tambahkan syarat pemfilteran (whereHas)
+        # Jika admin memilih sebuah peran di dropdown...
         if ($role) {
+            # ...tambahkan filter tambahan: hanya cari log yang data tabel penggunanya memiliki peran sesuai pilihan
             $query->whereHas('pengguna', function ($q) use ($role) {
                 $q->where('peran', $role);
             });
         }
 
-        # Eksekusi dan ambil data hasil akhirnya
+        # Ambil hasil akhirnya dari database
         $logs = $query->get();
 
-        # Tampilkan view log audit
+        # Tampilkan halaman log audit
         return view('admin.audit-logs', [
             'title' => 'Log Audit Sistem',
             'logs' => $logs
         ]);
     }
 
-    # --- FUNGSI UNTUK PUSAT NOTIFIKASI ---
+    # --- FUNGSI UNTUK MENAMPILKAN PUSAT NOTIFIKASI ---
     public function notifikasi(Request $request)
     {
-        # Menangkap parameter filter 'tab' (Semua, Keamanan, Sistem), nilai bawaannya adalah 'Semua'
+        # Mengecek tab apa yang sedang diklik (Semua, Keamanan, atau Sistem). Default-nya adalah 'Semua'
         $tab = $request->query('tab', 'Semua');
 
-        # Mulai menyusun query notifikasi, diurutkan dari yang terbaru
+        # Siapkan perintah: ambil semua peringatan dari yang paling baru
         $query = Notifikasi::orderBy('created_at', 'desc');
 
-        # Jika tab bukan "Semua", saring berdasarkan tipe notifikasi
+        # Jika tab bukan 'Semua', saring tipe notifikasinya sesuai tab yang diklik
         if ($tab == 'Keamanan') {
             $query->where('tipe', 'Keamanan');
         } elseif ($tab == 'Sistem') {
             $query->where('tipe', 'Sistem');
         }
 
-        # Eksekusi query notifikasi
+        # Eksekusi pencarian
         $notifikasi = $query->get();
 
-        # Hitung berapa banyak notifikasi yang statusnya masih 'Belum' dibaca (untuk indikator angka)
+        # Hitung ada berapa notifikasi yang statusnya masih 'Belum' dibaca (untuk memunculkan angka merah)
         $belumDibaca = Notifikasi::where('status_baca', 'Belum')->count();
 
-        # Tampilkan view pusat notifikasi
+        # Tampilkan halamannya
         return view('admin.notifikasi', [
             'title' => 'Pusat Notifikasi',
             'notifikasi' => $notifikasi,
             'belumDibaca' => $belumDibaca,
-            'activeTab' => $tab # Mengirim data tab mana yang sedang aktif ke view
+            'activeTab' => $tab # Memberitahu halaman HTML tab mana yang harus diberi warna aktif
         ]);
     }
 
-    # --- FUNGSI UNTUK MENANDAI SEMUA NOTIFIKASI SEBAGAI TELAH DIBACA ---
+    # --- FUNGSI UNTUK TOMBOL "TANDAI SEMUA DIBACA" ---
     public function bacaSemuaNotifikasi()
     {
-        # Cari semua notifikasi yang statusnya 'Belum', lalu ubah nilai kolom tersebut menjadi 'Sudah' sekaligus
+        # Cari seluruh baris di tabel notifikasi yang statusnya 'Belum', lalu paksa ubah menjadi 'Sudah'
         Notifikasi::where('status_baca', 'Belum')->update(['status_baca' => 'Sudah']);
 
-        # Kembali ke halaman sebelumnya
+        # Refresh halaman
         return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PENGATURAN SISTEM GLOBAL ---
+    # --- FUNGSI UNTUK MENAMPILKAN PENGATURAN GLOBAL SISTEM ---
     public function pengaturan()
     {
-        # Mengambil konfigurasi baris pertama saja dari tabel 'pengaturan'
+        # Ambil pengaturan baris pertama (karena tabel pengaturan memang hanya berisi 1 baris saklar global)
         $pengaturan = Pengaturan::first();
 
-        # Menampilkan form pengaturan
         return view('admin.pengaturan', [
             'title' => 'Pengaturan Sistem',
             'pengaturan' => $pengaturan
         ]);
     }
 
-    # --- FUNGSI UNTUK MENYIMPAN PEMBARUAN PENGATURAN SISTEM ---
+    # --- FUNGSI UNTUK MENYIMPAN PENGATURAN YANG DIUBAH ADMIN ---
     public function updatePengaturan(Request $request)
     {
-        # Ambil baris pertama tabel pengaturan yang ingin diperbarui
         $pengaturan = Pengaturan::first();
 
-        # Validasi teks identitas aplikasi
+        # Pastikan nama dan alamat tidak dikosongkan
         $request->validate([
             'nama_apotek' => 'required|string|max:100',
             'alamat_apotek' => 'required|string',
         ]);
 
-        # Lakukan pembaruan. Checkbox HTML (seperti toggle keamanan) jika dimatikan tidak akan mengirim data apa pun.
-        # Karenanya, kita gunakan metode 'has()' untuk memeriksa apakah opsi itu dicentang atau tidak (menghasilkan angka 1 atau 0)
+        # Simpan perubahan.
+        # Logika Checkbox HTML: Jika dicentang (has), nilainya 1. Jika tidak, nilainya 0 (false)
         $pengaturan->update([
-            'nama_apotek' => $request->nama_apotek,
-            'alamat_apotek' => $request->alamat_apotek,
+            'nama_apotek'         => $request->nama_apotek,
+            'alamat_apotek'       => $request->alamat_apotek,
             'wajib_password_kuat' => $request->has('wajib_password_kuat') ? 1 : 0,
-            'auto_logout' => $request->has('auto_logout') ? 1 : 0,
-            'log_audit_global' => $request->has('log_audit_global') ? 1 : 0,
+            'auto_logout'         => $request->has('auto_logout') ? 1 : 0,
+            'log_audit_global'    => $request->has('log_audit_global') ? 1 : 0,
         ]);
 
-        # Catat aktivitas pembaruan ini ke dalam log audit
+        # Catat ke log bahwa admin telah merombak konfigurasi aplikasi
         LogAudit::create([
             'id_pengguna' => Auth::user()->id_pengguna,
             'aktivitas'   => 'Memperbarui Pengaturan Sistem Aplikasi',
@@ -380,43 +382,40 @@ class DashboardController extends Controller
             'created_at'  => now(),
         ]);
 
-        # Kembali ke halaman pengaturan dengan pesan sukses
         return back()->with('success', 'Pengaturan sistem berhasil diperbarui!');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN PROFIL PRIBADI AKUN YANG SEDANG LOGIN ---
+    # --- FUNGSI UNTUK MENGEDIT PROFIL DIRI SENDIRI ---
     public function profil()
     {
-        # Tarik data diri lengkap pengguna yang sedang aktif saat ini
+        # Ambil data diri akun yang sedang login saat ini
         $user = Auth::user();
 
-        # Tampilkan form edit profil
         return view('admin.profil', [
             'title' => 'Profil Saya',
             'user' => $user
         ]);
     }
 
-    # --- FUNGSI UNTUK MEMPERBARUI DATA PROFIL PRIBADI ---
+    # --- FUNGSI UNTUK MENYIMPAN PROFIL DIRI SENDIRI ---
     public function updateProfil(Request $request)
     {
-        # Ambil data pengguna yang sedang login
         $user = Auth::user();
 
-        # Validasi input; khusus username dipastikan tidak kembar di tabel pengguna, kecuali username miliknya sendiri
+        # Validasi seperti biasa, abaikan nama unik jika itu miliknya sendiri
         $request->validate([
             'nama_lengkap' => 'required|string|max:100',
             'username'     => 'required|string|max:50|unique:pengguna,username,' . $user->id_pengguna . ',id_pengguna',
         ]);
 
-        # Cari data berdasarkan ID, lalu jalankan fungsi pembaruan database
+        # Cari tabel pengguna berdasarkan ID dirinya, lalu perbarui teksnya
         $userModel = Pengguna::findOrFail($user->id_pengguna);
         $userModel->update([
             'nama_lengkap' => $request->nama_lengkap,
             'username'     => $request->username,
         ]);
 
-        # Catat bahwa profil telah diedit secara mandiri
+        # Catat aktivitas bahwa dia baru saja mengubah datanya sendiri
         LogAudit::create([
             'id_pengguna' => $user->id_pengguna,
             'aktivitas'   => 'Memperbarui data profil pribadi',
@@ -425,17 +424,16 @@ class DashboardController extends Controller
             'created_at'  => now(),
         ]);
 
-        # Arahkan kembali dengan pesan berhasil
         return back()->with('success', 'Profil Anda berhasil diperbarui!');
     }
 
-    # --- FUNGSI UNTUK MEMBUAT DAN MENDOWNLOAD LAPORAN PDF DARI LOG AUDIT ---
+    # --- FUNGSI UNTUK MENGHASILKAN PDF DARI LOG AUDIT ---
     public function exportPdfAuditLogs(Request $request)
     {
-        # Tangkap parameter 'role' jika pengguna saat ini sedang memfilter peran tertentu
+        # Tangkap filter peran (agar PDF yang dicetak sama dengan apa yang di-filter di layar)
         $role = $request->query('role');
 
-        # Susun query sama persis seperti fungsi auditLogs agar data PDF sama dengan tampilan layar
+        # Susun query yang sama dengan tabel audit logs
         $query = LogAudit::with('pengguna')->orderBy('created_at', 'desc');
         if ($role) {
             $query->whereHas('pengguna', function ($q) use ($role) {
@@ -443,67 +441,75 @@ class DashboardController extends Controller
             });
         }
 
-        # Eksekusi dan simpan semua baris data yang cocok
+        # Eksekusi pencarian
         $logs = $query->get();
 
-        # Panggil library DomPDF (Pdf) untuk me-render data ke dalam template HTML (pdf-audit-logs)
+        # Panggil alat Pdf untuk mencetak file 'admin/pdf-audit-logs.blade.php' ke dalam bentuk dokumen
         $pdf = Pdf::loadView('admin.pdf-audit-logs', [
             'logs' => $logs,
-            'role' => $role # Kirim juga nama perannya untuk dicetak sebagai judul di dalam PDF
+            'role' => $role # Kirim data peran untuk dijadikan judul cetakan di atas kertas
         ]);
 
-        # Instruksikan browser untuk langsung men-download hasil rendernya sebagai file PDF
+        # Lempar dokumen PDF tersebut agar di-download oleh browser dengan nama file kustom
         return $pdf->download('Laporan_Audit_Log_SIOPAL.pdf');
     }
 
+
+    # =====================================================================
+    # BAGIAN 3: FUNGSI-FUNGSI KHUSUS KEPALA APOTEK
+    # =====================================================================
+
+    # --- FUNGSI UNTUK DASHBOARD KEPALA APOTEK ---
     public function kepala()
     {
-        # 1. Menghitung jumlah Faktur Masuk yang berstatus 'Draft'
+        # 1. Menghitung jumlah Faktur Obat Masuk yang berstatus 'Draft' (Artinya butuh di-ACC)
         $menungguMasuk = DB::table('obat_masuk')->where('status_verifikasi', 'Draft')->count();
 
-        # 2. Menghitung jumlah Permintaan Keluar/Pemusnahan yang berstatus 'Menunggu'
+        # 2. Menghitung jumlah Permintaan Obat Keluar/Rusak yang berstatus 'Menunggu' (Artinya butuh di-ACC)
         $menungguKeluar = DB::table('obat_keluar')->where('status_otorisasi', 'Menunggu')->count();
 
-        # 3. Menghitung jumlah Obat Kritis (total_stok <= batas_stok_min)
+        # 3. Menghitung jumlah Obat Kritis dengan mengecek apakah total stoknya sudah di bawah batas minimum
         $stokKritis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->count();
 
-        # --- LOGIKA BARU UNTUK GRAFIK KEDALUWARSA (DEFECTA) ---
-        $hariIni = \Carbon\Carbon::now();
-        $tigaBulan = \Carbon\Carbon::now()->addMonths(3);
-        $enamBulan = \Carbon\Carbon::now()->addMonths(6);
+        # --- LOGIKA UNTUK GRAFIK PETA KEDALUWARSA (DEFECTA) ---
+        # Menentukan acuan waktu menggunakan alat Carbon
+        $hariIni = \Carbon\Carbon::now();                  # Waktu persis saat ini
+        $tigaBulan = \Carbon\Carbon::now()->addMonths(3);  # Waktu untuk 3 bulan ke depan
+        $enamBulan = \Carbon\Carbon::now()->addMonths(6);  # Waktu untuk 6 bulan ke depan
 
-        # Batch Kedaluwarsa (Tanggal ED sudah lewat dari hari ini)
+        # Menghitung Batch Kedaluwarsa: Jika tanggal kedaluwarsa sudah lebih kecil (lewat) dari hari ini
         $kadaluwarsa = DB::table('detail_masuk')->whereDate('tgl_kadaluwarsa', '<', $hariIni)->count();
 
-        # Batch Kritis (ED antara hari ini sampai 3 bulan ke depan)
+        # Menghitung Batch Kritis: Jika tanggal kedaluwarsanya berjarak antara hari ini hingga 3 bulan ke depan
         $kritis = DB::table('detail_masuk')->whereBetween('tgl_kadaluwarsa', [$hariIni, $tigaBulan])->count();
 
-        # Batch Peringatan (ED antara 3 bulan sampai 6 bulan ke depan)
-        # Menggunakan addDay() agar tidak ada tanggal yang beririsan dengan variabel $tigaBulan
+        # Menghitung Batch Peringatan: Jika ED-nya antara 3 bulan lebih sehari, sampai 6 bulan ke depan
+        # (addDay digunakan agar jarak harinya tidak tumpang tindih dengan yang Kritis)
         $peringatan = DB::table('detail_masuk')->whereBetween('tgl_kadaluwarsa', [$tigaBulan->copy()->addDay(), $enamBulan])->count();
 
-        # Batch Aman (ED masih lebih dari 6 bulan)
+        # Menghitung Batch Aman: Jika tanggal ED-nya masih lebih jauh dari 6 bulan ke depan
         $aman = DB::table('detail_masuk')->whereDate('tgl_kadaluwarsa', '>', $enamBulan)->count();
 
-        # 5. Mengambil 5 daftar tugas terbaru untuk tabel
+        # 5. Mengambil 5 faktur terbaru yang berstatus Draft untuk ditampilkan di tabel tugas
         $fakturPending = DB::table('obat_masuk')
             ->where('status_verifikasi', 'Draft')
-            ->orderBy('tanggal_masuk', 'desc')
-            ->limit(5)
+            ->orderBy('tanggal_masuk', 'desc') # Urutkan dari tanggal terbaru
+            ->limit(5) # Batasi hanya ambil 5
             ->get();
 
+        # Kirim semuanya ke layar dashboard Kepala
         return view('kepala.dashboard', [
             'title' => 'Dashboard Kepala Apotek',
             'menungguMasuk' => $menungguMasuk,
             'menungguKeluar' => $menungguKeluar,
             'stokKritis' => $stokKritis,
             'fakturPending' => $fakturPending,
-            # Data array baru untuk dikirim ke grafik Bar
+            # Data ini digabung ke dalam satu array agar mudah digambar oleh grafik batang
             'dataDefecta' => [$aman, $peringatan, $kritis, $kadaluwarsa]
         ]);
     }
 
-    # --- PLACEHOLDER HALAMAN KEPALA APOTEK ---
+    # --- (PLACEHOLDER) FUNGSI-FUNGSI KEPALA APOTEK YANG SEDANG DALAM PENGERJAAN ---
     public function validasi()
     {
         return "Halaman Validasi Transaksi (Dalam Pengerjaan)";
@@ -534,21 +540,28 @@ class DashboardController extends Controller
         return "Halaman Pengaturan Kepala Apotek (Dalam Pengerjaan)";
     }
 
+
+    # =====================================================================
+    # BAGIAN 4: FUNGSI-FUNGSI KHUSUS PETUGAS APOTEK
+    # =====================================================================
+
+    # --- FUNGSI UNTUK DASHBOARD OPERASIONAL PETUGAS ---
     public function petugas()
     {
-        // 1. Total Jenis Obat di Katalog
+        # 1. Menghitung total seluruh jenis obat yang terdaftar di katalog
         $totalObat = DB::table('obat')->count();
 
-        // 2. Stok Menipis (total_stok <= batas_stok_min)
+        # 2. Menghitung obat yang stoknya menipis (sudah menyentuh atau kurang dari batas minimal)
         $stokMenipis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->count();
 
-        // 3. Akan Kedaluwarsa (Batch yang ED-nya 6 bulan dari sekarang atau sudah lewat)
+        # 3. Menghitung jumlah Batch yang akan atau sudah kedaluwarsa (ED <= 6 Bulan dari sekarang)
         $enamBulanKeDepan = \Carbon\Carbon::now()->addMonths(6);
         $akanKedaluwarsa = DB::table('detail_masuk')
             ->whereDate('tgl_kadaluwarsa', '<=', $enamBulanKeDepan)
             ->count();
 
-        // 4. Aktivitas Stok Terbaru (Menggabungkan 5 Obat Masuk & 5 Obat Keluar terakhir, lalu diurutkan)
+        # 4. Menyusun tabel Riwayat Aktivitas Stok Terbaru
+        # Mengambil 5 aktivitas OBAT MASUK terakhir. (Kita gabungkan tabel obat_masuk, detail_masuk, dan obat untuk mendapat namanya)
         $masuk = DB::table('obat_masuk')
             ->join('detail_masuk', 'obat_masuk.id_masuk', '=', 'detail_masuk.id_masuk')
             ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
@@ -557,6 +570,7 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        # Mengambil 5 aktivitas OBAT KELUAR terakhir
         $keluar = DB::table('obat_keluar')
             ->join('detail_keluar', 'obat_keluar.id_keluar', '=', 'detail_keluar.id_keluar')
             ->join('obat', 'detail_keluar.id_obat', '=', 'obat.id_obat')
@@ -565,12 +579,15 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // Menggabungkan kedua koleksi dan mengambil 5 teratas secara keseluruhan
+        # Menggabungkan koleksi data 'Masuk' dan 'Keluar' tadi menjadi satu tabel,
+        # mengurutkan semuanya berdasarkan tanggal terbaru, lalu memotongnya hanya menjadi 5 baris teratas saja
         $aktivitasTerbaru = $masuk->concat($keluar)->sortByDesc('tanggal')->take(5);
 
+        # Tampilkan dashboard petugas beserta datanya
         return view('petugas.dashboard', compact('totalObat', 'stokMenipis', 'akanKedaluwarsa', 'aktivitasTerbaru'));
     }
 
+    # --- (PLACEHOLDER) FUNGSI-FUNGSI PETUGAS APOTEK YANG SEDANG DALAM PENGERJAAN ---
     public function katalogObat()
     {
         return "Halaman Katalog Obat Petugas Apotek (Dalam Pengerjaan)";

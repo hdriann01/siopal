@@ -3,16 +3,13 @@
 @section('content')
     <div class="space-y-8">
 
-        <!-- Header -->
         <div class="mb-8">
             <h2 class="text-3xl font-display font-bold text-gray-800 tracking-tight">Dashboard Operasional</h2>
             <p class="text-gray-500 mt-2 text-lg">Kelola persediaan obat dan catat mutasi stok hari ini.</p>
         </div>
 
-        <!-- Row 1: Quick Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
-            <!-- Total Obat -->
             <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                 <div class="flex justify-between items-start">
                     <div>
@@ -30,7 +27,6 @@
                 </div>
             </div>
 
-            <!-- Stok Menipis -->
             <div class="bg-white rounded-xl p-6 border-l-4 border-l-amber-500 border-y border-r border-gray-200 shadow-sm">
                 <div class="flex justify-between items-start">
                     <div>
@@ -55,7 +51,6 @@
                 </div>
             </div>
 
-            <!-- Kedaluwarsa -->
             <div class="bg-white rounded-xl p-6 border-l-4 border-l-red-500 border-y border-r border-gray-200 shadow-sm">
                 <div class="flex justify-between items-start">
                     <div>
@@ -81,7 +76,6 @@
             </div>
         </div>
 
-        <!-- Row 2: Action Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <a href="{{ route('petugas.masuk') }}"
                 class="group bg-white rounded-xl p-8 border border-gray-200 shadow-sm hover:border-teal-500 hover:shadow-md transition-all text-left flex items-center gap-6 cursor-pointer block">
@@ -127,7 +121,6 @@
             </a>
         </div>
 
-        <!-- Row 3: Activity Table -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
             <div class="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">

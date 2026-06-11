@@ -84,7 +84,6 @@
         </div>
     </div>
 
-    <!-- Script Logika Toggle Password -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const togglePassword = document.getElementById('togglePassword');
@@ -92,20 +91,18 @@
             const eyeIcon = document.getElementById('eyeIcon');
 
             togglePassword.addEventListener('click', function() {
-                // Mengecek tipe input saat ini
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
 
-                // Mengubah ikon dan warna dengan logika yang benar
                 if (type === 'text') {
-                    eyeIcon.textContent = 'visibility'; // Mata normal (Terbuka) = Teks Terlihat
+                    eyeIcon.textContent = 'visibility';
                     this.classList.remove('text-gray-400');
-                    this.classList.add('text-primary'); // Warna hijau menandakan sedang aktif dilihat
+                    this.classList.add('text-primary');
                 } else {
                     eyeIcon.textContent =
-                    'visibility_off'; // Mata dicoret (Tertutup) = Teks Tersembunyi (Titik-titik)
+                        'visibility_off';
                     this.classList.remove('text-primary');
-                    this.classList.add('text-gray-400'); // Kembali ke warna abu-abu
+                    this.classList.add('text-gray-400');
                 }
             });
         });

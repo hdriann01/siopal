@@ -1,84 +1,110 @@
 <?php
 
-# Mendefinisikan namespace tempat controller ini berada agar dikenali oleh Laravel
+# =====================================================================
+# 1. BAGIAN PERSIAPAN (IMPOR KELAS DAN PENGATURAN LOKASI)
+# =====================================================================
+
+# Menentukan 'alamat' (namespace) file ini agar Laravel tahu di mana mencarinya
 namespace App\Http\Controllers;
 
-# Mengimpor class Request untuk menangani dan menangkap data inputan dari pengguna
+# Memanggil alat pembawa data (Request) untuk menangkap ketikan user dari form
 use Illuminate\Http\Request;
-# Mengimpor facade Auth untuk menangani proses autentikasi (pemeriksaan login/logout)
+
+# Memanggil alat keamanan (Auth) untuk mengecek apakah user boleh masuk atau tidak
 use Illuminate\Support\Facades\Auth;
-# Mengimpor model LogAudit agar sistem bisa menyimpan rekaman riwayat ke database
+
+# Memanggil cetakan tabel (Model) LogAudit untuk menyimpan jejak riwayat ke database
 use App\Models\LogAudit;
 
-# Mendeklarasikan class AuthController yang mewarisi fungsi dari class Controller bawaan
+# Membuat kelas AuthController yang mewarisi kemampuan bawaan dari Laravel (Controller)
 class AuthController extends Controller
 {
-    # Fungsi ini bertugas khusus untuk menampilkan antarmuka halaman login
+    # =====================================================================
+    # 2. FUNGSI MENAMPILKAN HALAMAN LOGIN
+    # =====================================================================
+
+    # Fungsi ini hanya bertugas satu hal: membukakan pintu depan (halaman login)
     public function showLogin()
     {
-        # Mengembalikan dan menampilkan file view yang berada di folder resources/views/auth/login.blade.php
+        # Mengambil dan menampilkan desain HTML dari file: resources/views/auth/login.blade.php
         return view('auth.login');
     }
 
-    # Fungsi ini bertugas untuk memproses data (username & password) yang dikirim saat tombol login ditekan
+    # =====================================================================
+    # 3. FUNGSI MEMPROSES DATA LOGIN (SAAT TOMBOL DITEKAN)
+    # =====================================================================
+
+    # Fungsi ini menangkap data yang dikirim user dari form HTML (lewat $request)
     public function login(Request $request)
     {
-        # Memvalidasi inputan form; memastikan kolom 'username' dan 'password' wajib diisi (required)
+        # Langkah A: Pengecekan Syarat Wajib
+        # Memastikan user tidak mengosongkan kolom username dan password
         $credentials = $request->validate([
-            'username' => ['required'],
-            'password' => ['required'],
+            'username' => ['required'], # Kolom username wajib diisi
+            'password' => ['required'], # Kolom password wajib diisi
         ]);
 
-        # Memeriksa apakah username dan password yang diinput cocok dengan data di database
+        # Langkah B: Pengecekan Kunci (Mencocokkan dengan Database)
+        # Auth::attempt() akan mengecek apakah username & password itu benar ada di database
         if (Auth::attempt($credentials)) {
-            # Jika cocok, buat ulang ID sesi (session) untuk melindungi dari serangan pencurian sesi (session fixation)
+
+            # Jika benar, segera perbarui ID Sesi (Session) agar tidak diretas oleh hacker
             $request->session()->regenerate();
 
-            # Menyimpan seluruh data pengguna yang berhasil login ke dalam variabel $user
+            # Mengambil seluruh data profil user yang baru saja sukses login
             $user = Auth::user();
 
-            # Menjalankan perintah untuk mencatat aktivitas login ini ke dalam tabel 'log_audit'
+            # Langkah C: Mencatat Riwayat Keamanan (Audit Trail)
+            # Menyimpan jejak bahwa user ini baru saja login ke dalam tabel 'log_audit'
             LogAudit::create([
-                'id_pengguna' => $user->id_pengguna, # Mengambil ID dari akun yang baru saja login
-                'aktivitas'   => 'Melakukan Login ke Sistem', # Keterangan aktivitas yang dilakukan
-                'alamat_ip'   => $request->ip(), # Mendeteksi dan menyimpan alamat IP perangkat pengguna
-                'status'      => 'Success', # Menandakan bahwa proses login berhasil masuk
-                'created_at'  => now(), # Mencatat waktu saat fungsi ini dieksekusi
+                'id_pengguna' => $user->id_pengguna,           # Siapa yang login? (ID-nya)
+                'aktivitas'   => 'Melakukan Login ke Sistem',  # Apa yang dia lakukan?
+                'alamat_ip'   => $request->ip(),               # Dari alamat internet (IP) mana?
+                'status'      => 'Success',                    # Apakah berhasil? Ya.
+                'created_at'  => now(),                        # Kapan ini terjadi? (Waktu saat ini)
             ]);
 
-            # Mengevaluasi hak akses (peran) dari pengguna untuk menentukan halaman tujuan (dashboard)
+            # Langkah D: Mengatur Arah Pintu Masuk Sesuai Jabatan (Peran)
+            # Mengecek jabatan user untuk menentukan dashboard mana yang akan dibuka
             if ($user->peran == 'Administrator') {
-                # Jika perannya Administrator, arahkan ke URL admin/dashboard
+
+                # Jika dia Admin, bukakan pintu ke ruang Admin
                 return redirect()->intended('admin/dashboard');
             } elseif ($user->peran == 'Kepala Apotek') {
-                # Jika perannya Kepala Apotek, arahkan ke URL kepala/dashboard
+
+                # Jika dia Kepala Apotek, bukakan pintu ke ruang Kepala
                 return redirect()->intended('kepala/dashboard');
             } else {
-                # Jika perannya Petugas Apotek, arahkan ke URL petugas/dashboard
+
+                # Jika bukan keduanya (berarti Petugas Apotek), bukakan pintu ke ruang Petugas
                 return redirect()->intended('petugas/dashboard');
             }
         }
 
-        # Jika pengecekan kredensial gagal (username/password salah), kembalikan ke halaman login
+        # Langkah E: Jika Username atau Password Salah
+        # Tendang kembali ke halaman login (back) dan bawa pesan error ini
         return back()->withErrors([
-            # Memunculkan pesan peringatan error di bawah kolom inputan
             'username' => 'Username atau password salah.',
-        ])->onlyInput('username'); # Menyimpan inputan username sebelumnya agar pengguna tidak perlu mengetik ulang
+        ])->onlyInput('username'); # Biarkan username yang tadi diketik tetap ada (agar tidak capek ngetik ulang)
     }
 
-    # Fungsi ini bertugas untuk mengeluarkan pengguna dari sistem aplikasi (logout)
+    # =====================================================================
+    # 4. FUNGSI LOGOUT (KELUAR DARI SISTEM)
+    # =====================================================================
+
+    # Fungsi ini bertugas menutup sesi dan mengunci pintu kembali
     public function logout(Request $request)
     {
-        # Menghapus sesi autentikasi, membuat status pengguna menjadi belum login
+        # Mencabut status 'sedang login' dari user tersebut
         Auth::logout();
 
-        # Membatalkan dan membersihkan semua data sesi yang tersimpan di memori browser
+        # Menghancurkan memori sesi di browser agar datanya tidak bisa diintip orang lain
         $request->session()->invalidate();
 
-        # Membuat ulang token CSRF baru untuk mencegah celah keamanan pemalsuan permintaan antar situs
+        # Membuat kunci keamanan baru (Token CSRF) agar form login ter-reset aman
         $request->session()->regenerateToken();
 
-        # Mengarahkan pengguna kembali ke halaman awal (form login)
+        # Arahkan user kembali ke halaman utama (halaman login)
         return redirect('/login');
     }
 }
