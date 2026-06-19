@@ -60,14 +60,14 @@
                 <span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
             </a>
 
-            <a class="flex items-center rounded-lg px-4 py-3 mx-2 font-semibold transition-all {{ Request::is('kepala/validasi*') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
-                href="{{ route('kepala.validasi') }}">
-                <span class="material-symbols-outlined mr-3">fact_check</span> Validasi Transaksi
+            <a class="flex items-center rounded-lg px-4 py-3 mx-2 font-semibold transition-all {{ Request::is('kepala/verifikasi*') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
+                href="{{ route('kepala.verifikasi') }}">
+                <span class="material-symbols-outlined mr-3">fact_check</span> Verifikasi Faktur
             </a>
 
-            <a class="flex items-center rounded-lg px-4 py-3 mx-2 font-semibold transition-all {{ Request::is('kepala/stok*') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
-                href="{{ route('kepala.stok') }}">
-                <span class="material-symbols-outlined mr-3">inventory_2</span> Pantauan Stok
+            <a class="flex items-center rounded-lg px-4 py-3 mx-2 font-semibold transition-all {{ Request::is('kepala/pemusnahan*') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
+                href="{{ route('kepala.pemusnahan') }}">
+                <span class="material-symbols-outlined mr-3">delete_sweep</span> Otorisasi Pemusnahan
             </a>
 
             <a class="flex items-center rounded-lg px-4 py-3 mx-2 font-semibold transition-all {{ Request::is('kepala/laporan*') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"

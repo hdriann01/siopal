@@ -15,7 +15,7 @@ use App\Http\Controllers\DashboardController;
 # 2. RUTE DASAR & ALAMAT UTAMA
 # =====================================================================
 
-# Jika ada orang mengakses alamat utama (misal: localhost:8000/),
+# Jika ada orang mengakses alamat utama aplikasi (misal: localhost:8000/),
 # sistem akan langsung 'melemparnya' (redirect) secara otomatis ke halaman login.
 Route::get('/', function () {
     return redirect('/login');
@@ -26,21 +26,21 @@ Route::get('/', function () {
 # =====================================================================
 
 # Rute (GET) untuk menampilkan desain halaman form login.
-# Nama 'login' diberikan agar sistem Laravel mengenali ini sebagai pintu masuk utama.
+# Nama 'login' diberikan agar sistem keamanan Laravel mengenali ini sebagai pintu masuk utama.
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 
-# Rute (POST) untuk mengirimkan data username & password yang diketik user ke otak sistem (Controller).
+# Rute (POST) untuk mengirimkan data username & password yang diketik pengguna ke otak sistem (Controller).
 Route::post('/login', [AuthController::class, 'login']);
 
-# Rute (POST) untuk menghancurkan sesi (session) dan mengeluarkan pengguna dari aplikasi.
+# Rute (POST) untuk menghancurkan sesi (session) yang sedang aktif dan mengeluarkan pengguna dari aplikasi.
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 # =====================================================================
 # 4. GRUP RUTE TERLINDUNGI (KHUSUS PENGGUNA YANG SUDAH LOGIN)
 # =====================================================================
 
-# Seluruh rute di bawah ini dibungkus middleware 'auth', artinya orang yang belum login
-# dilarang keras mencoba mengakses URL-URL ini secara manual.
+# Seluruh rute di bawah ini dibungkus middleware 'auth'. Artinya, sembarang orang yang belum login
+# dilarang keras mencoba mengakses atau mengetik URL-URL ini secara manual di browser.
 Route::middleware(['auth'])->group(function () {
 
     # --- MENU UTAMA & DASHBOARD ADMIN ---
@@ -51,87 +51,124 @@ Route::middleware(['auth'])->group(function () {
     # Rute untuk melihat tabel daftar staf apotek dan melakukan pencarian nama.
     Route::get('/admin/manajemen-user', [DashboardController::class, 'manajemenUser'])->name('admin.manajemen-user');
 
-    # Menampilkan form kosong untuk mendaftarkan pegawai baru ke sistem.
+    # Menampilkan form kosong untuk mendaftarkan pegawai baru ke dalam sistem.
     Route::get('/admin/tambah-user', [DashboardController::class, 'tambahUser'])->name('admin.tambah-user');
 
     # Menyimpan data pegawai baru tersebut ke dalam database setelah tombol 'Simpan' ditekan.
     Route::post('/admin/tambah-user', [DashboardController::class, 'simpanUser'])->name('admin.simpan-user');
 
-    # Membuka form untuk mengubah data staf tertentu berdasarkan ID-nya.
+    # Membuka form untuk mengubah data profil staf tertentu berdasarkan {id}-nya.
     Route::get('/admin/edit-user/{id}', [DashboardController::class, 'editUser'])->name('admin.edit-user');
 
-    # Memproses perubahan data staf tersebut ke dalam tabel database (metode PUT).
+    # Memproses perubahan data staf tersebut ke dalam tabel database (menggunakan metode PUT untuk update).
     Route::put('/admin/update-user/{id}', [DashboardController::class, 'updateUser'])->name('admin.update-user');
 
-    # Membuka form khusus untuk mengganti password staf yang lupa atau bermasalah.
+    # Membuka form khusus untuk mengganti kata sandi (password) staf yang lupa atau bermasalah.
     Route::get('/admin/reset-password/{id}', [DashboardController::class, 'resetPassword'])->name('admin.reset-password');
 
-    # Memproses penyimpanan password baru yang sudah dienkripsi (Hash) ke database.
+    # Memproses penyimpanan kata sandi baru yang sudah dienkripsi ke dalam database.
     Route::put('/admin/update-password/{id}', [DashboardController::class, 'updatePassword'])->name('admin.update-password');
 
-    # Menampilkan layar konfirmasi 'Apakah anda yakin?' sebelum data benar-benar dihapus.
+    # Menampilkan layar konfirmasi 'Apakah anda yakin?' sebelum data staf benar-benar dihapus.
     Route::get('/admin/hapus-user/{id}', [DashboardController::class, 'konfirmasiHapus'])->name('admin.konfirmasi-hapus');
 
-    # Menghapus baris data staf tersebut secara permanen dari database (metode DELETE).
+    # Menghapus baris data staf tersebut secara permanen dari database (menggunakan metode DELETE).
     Route::delete('/admin/proses-hapus/{id}', [DashboardController::class, 'prosesHapus'])->name('admin.proses-hapus');
 
     # --- MODUL PUSAT NOTIFIKASI ---
-    # Menampilkan daftar seluruh alarm dan peringatan sistem (keamanan/stok).
+    # Menampilkan daftar seluruh alarm dan peringatan sistem (keamanan akun / peringatan stok obat).
     Route::get('/admin/notifikasi', [DashboardController::class, 'notifikasi'])->name('admin.notifikasi');
 
-    # Mengubah status seluruh notifikasi menjadi 'Sudah Dibaca' sekaligus.
+    # Mengubah status seluruh notifikasi menjadi 'Sudah Dibaca' sekaligus dalam satu kali klik.
     Route::post('/admin/notifikasi/baca-semua', [DashboardController::class, 'bacaSemuaNotifikasi'])->name('admin.baca-semua-notif');
 
     # --- MODUL PENGATURAN & PROFIL ---
-    # Mengelola identitas apotek dan saklar keamanan global aplikasi.
+    # Membuka halaman untuk mengelola identitas apotek dan saklar keamanan global aplikasi.
     Route::get('/admin/pengaturan', [DashboardController::class, 'pengaturan'])->name('admin.pengaturan');
 
-    # Menyimpan pembaruan konfigurasi pengaturan sistem.
+    # Menyimpan pembaruan konfigurasi pengaturan sistem tersebut ke database.
     Route::put('/admin/pengaturan/update', [DashboardController::class, 'updatePengaturan'])->name('admin.update-pengaturan');
 
-    # Melihat data profil pribadi dari akun yang sedang login saat ini.
+    # Melihat detail data profil pribadi dari akun admin yang sedang login saat ini.
     Route::get('/admin/profil', [DashboardController::class, 'profil'])->name('admin.profil');
 
-    # Memperbarui informasi mandiri pengguna (seperti ganti nama/username).
+    # Memperbarui informasi mandiri pengguna (seperti mengganti nama lengkap atau username).
     Route::put('/admin/profil/update', [DashboardController::class, 'updateProfil'])->name('admin.update-profil');
 
     # --- MODUL LOG AUDIT SISTEM ---
-    # Menampilkan riwayat rekam jejak aktivitas (CCTV digital) seluruh pengguna.
+    # Menampilkan tabel riwayat CCTV digital (rekam jejak aktivitas) seluruh pengguna di dalam aplikasi.
     Route::get('/admin/audit-logs', [DashboardController::class, 'auditLogs'])->name('admin.audit-logs');
 
-    # Mencetak data riwayat aktivitas tersebut ke dalam dokumen PDF untuk didownload.
+    # Merender (menghasilkan) laporan riwayat aktivitas tersebut menjadi file dokumen PDF untuk diunduh.
     Route::get('/admin/audit-logs/pdf', [DashboardController::class, 'exportPdfAuditLogs'])->name('admin.audit-logs.pdf');
 
     # =====================================================================
     # 5. GRUP RUTE KEPALA APOTEK (FOLDER AWAL: KEPALA/)
     # =====================================================================
 
-    # Seluruh rute di grup ini memiliki awalan URL /kepala/ (misal: /kepala/dashboard).
+    # Membungkus seluruh rute agar otomatis memiliki awalan URL '/kepala' dan awalan nama 'kepala.'
     Route::prefix('kepala')->name('kepala.')->group(function () {
-        # Halaman dashboard khusus untuk manajer (Kepala Apotek).
+
+        # Halaman dashboard khusus ringkasan manajerial untuk Kepala Apotek.
         Route::get('/dashboard', [DashboardController::class, 'kepala'])->name('dashboard');
-        # Rute-rute modul yang akan dikerjakan selanjutnya (placeholder).
-        Route::get('/validasi', [DashboardController::class, 'validasi'])->name('validasi');
-        Route::get('/stok', [DashboardController::class, 'stok'])->name('stok');
+
+        # --- MODUL VERIFIKASI FAKTUR ---
+        # Membuka halaman daftar antrean faktur obat masuk yang butuh persetujuan (verifikasi).
+        Route::get('/verifikasi', [DashboardController::class, 'verifikasi'])->name('verifikasi');
+
+        # Membuka halaman rincian isi item obat di dalam suatu faktur tertentu (membawa parameter ID Faktur).
+        Route::get('/verifikasi/detail/{id_masuk}', [DashboardController::class, 'detailVerifikasi'])->name('verifikasi.detail');
+
+        # Memproses aksi Kepala Apotek saat menekan tombol 'Setuju' atau 'Tolak' pada faktur obat masuk.
+        Route::post('/verifikasi/proses/{id_masuk}', [DashboardController::class, 'prosesVerifikasi'])->name('verifikasi.proses');
+
+        # --- MODUL OTORISASI PEMUSNAHAN ---
+        # Membuka halaman daftar pengajuan pemusnahan obat yang rusak atau telah kedaluwarsa.
+        Route::get('/pemusnahan', [DashboardController::class, 'pemusnahan'])->name('pemusnahan');
+
+        # Memproses keputusan Kepala Apotek (Setuju/Tolak) terhadap pengajuan pemusnahan obat.
+        Route::post('/pemusnahan/proses/{id_keluar}', [DashboardController::class, 'prosesPemusnahan'])->name('pemusnahan.proses');
+
+        # --- MODUL LAPORAN & PROFIL ---
+        # Membuka halaman pusat untuk mencetak laporan stok sediaan dan riwayat transaksi.
         Route::get('/laporan', [DashboardController::class, 'laporan'])->name('laporan');
+
+        # Membuka halaman daftar pemberitahuan/alarm khusus untuk Kepala Apotek.
         Route::get('/notifikasi', [DashboardController::class, 'notifikasiKepala'])->name('notifikasi');
+
+        # Membuka halaman profil pribadi milik Kepala Apotek.
         Route::get('/profil', [DashboardController::class, 'profilKepala'])->name('profil');
+
+        # Menyimpan pembaruan data (nama/username) milik Kepala Apotek ke database.
+        Route::post('/profil/update', [DashboardController::class, 'updateProfilKepala'])->name('profil.update');
     });
 
     # =====================================================================
     # 6. GRUP RUTE PETUGAS APOTEK (FOLDER AWAL: PETUGAS/)
     # =====================================================================
 
-    # Seluruh rute di grup ini memiliki awalan URL /petugas/ (misal: /petugas/obat).
+    # Membungkus seluruh rute agar otomatis memiliki awalan URL '/petugas' dan awalan nama 'petugas.'
     Route::prefix('petugas')->name('petugas.')->group(function () {
-        # Halaman dashboard operasional harian.
+
+        # Halaman dashboard pantauan operasional harian bagi Petugas Apotek.
         Route::get('/dashboard', [DashboardController::class, 'petugas'])->name('dashboard');
-        # Rute-rute modul operasional yang akan dikerjakan selanjutnya (placeholder).
+
+        # Rute untuk mengakses buku/katalog induk seluruh jenis obat di apotek.
         Route::get('/obat', [DashboardController::class, 'katalogObat'])->name('obat');
+
+        # Rute untuk mencatat penerimaan/faktur obat masuk dari distributor (PBF).
         Route::get('/masuk', [DashboardController::class, 'obatMasuk'])->name('masuk');
+
+        # Rute untuk mencatat pengeluaran obat (baik untuk resep, rusak, maupun kedaluwarsa).
         Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
+
+        # Rute untuk melakukan pencocokan fisik barang di gudang dengan data di sistem (Stok Opname).
         Route::get('/opname', [DashboardController::class, 'stokOpname'])->name('opname');
+
+        # Rute untuk melihat peringatan sistem khusus wilayah kerja petugas.
         Route::get('/notifikasi', [DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
+
+        # Rute untuk mengelola profil pribadi milik Petugas Apotek.
         Route::get('/profil', [DashboardController::class, 'profilPetugas'])->name('profil');
     });
 });

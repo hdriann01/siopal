@@ -260,7 +260,7 @@ class DashboardController extends Controller
         # Hapus baris data pengguna tersebut secara permanen dari tabel
         $user->delete();
 
-        # Catat pembunuhan karakter ini (penghapusan data) ke log audit menggunakan nama yang sudah kita amankan tadi
+        # Catat penghapusan data ini ke log audit menggunakan nama yang sudah kita amankan tadi
         LogAudit::create([
             'id_pengguna' => Auth::user()->id_pengguna,
             'aktivitas'   => "Menghapus permanen pengguna: " . $namaYangDihapus,
@@ -462,82 +462,461 @@ class DashboardController extends Controller
     # --- FUNGSI UNTUK DASHBOARD KEPALA APOTEK ---
     public function kepala()
     {
-        # 1. Menghitung jumlah Faktur Obat Masuk yang berstatus 'Draft' (Artinya butuh di-ACC)
-        $menungguMasuk = DB::table('obat_masuk')->where('status_verifikasi', 'Draft')->count();
+        # --- 1. LOGIKA UNTUK WIDGET KARTU DI ATAS ---
+        # Hitung Faktur Menunggu Verifikasi (Draft)
+        $fakturMenunggu = DB::table('obat_masuk')
+            ->where('status_verifikasi', 'Draft')
+            ->count();
 
-        # 2. Menghitung jumlah Permintaan Obat Keluar/Rusak yang berstatus 'Menunggu' (Artinya butuh di-ACC)
-        $menungguKeluar = DB::table('obat_keluar')->where('status_otorisasi', 'Menunggu')->count();
+        # Hitung Otorisasi Permintaan/Pemusnahan Menunggu
+        $pemusnahanMenunggu = DB::table('obat_keluar')
+            ->where('status_otorisasi', 'Menunggu')
+            ->where('tujuan_pengeluaran', 'Pemusnahan/Rusak')
+            ->count();
 
-        # 3. Menghitung jumlah Obat Kritis dengan mengecek apakah total stoknya sudah di bawah batas minimum
-        $stokKritis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->count();
+        # Hitung Obat Kritis (Stok <= Batas Minimal)
+        $obatKritis = DB::table('obat')
+            ->whereRaw('total_stok <= batas_stok_min')
+            ->count();
 
-        # --- LOGIKA UNTUK GRAFIK PETA KEDALUWARSA (DEFECTA) ---
-        # Menentukan acuan waktu menggunakan alat Carbon
-        $hariIni = \Carbon\Carbon::now();                  # Waktu persis saat ini
-        $tigaBulan = \Carbon\Carbon::now()->addMonths(3);  # Waktu untuk 3 bulan ke depan
-        $enamBulan = \Carbon\Carbon::now()->addMonths(6);  # Waktu untuk 6 bulan ke depan
 
-        # Menghitung Batch Kedaluwarsa: Jika tanggal kedaluwarsa sudah lebih kecil (lewat) dari hari ini
+        # --- 2. LOGIKA UNTUK GRAFIK PETA KEDALUWARSA (DEFECTA) ---
+        $hariIni = \Carbon\Carbon::now();
+        $tigaBulan = \Carbon\Carbon::now()->addMonths(3);
+        $enamBulan = \Carbon\Carbon::now()->addMonths(6);
+
         $kadaluwarsa = DB::table('detail_masuk')->whereDate('tgl_kadaluwarsa', '<', $hariIni)->count();
-
-        # Menghitung Batch Kritis: Jika tanggal kedaluwarsanya berjarak antara hari ini hingga 3 bulan ke depan
         $kritis = DB::table('detail_masuk')->whereBetween('tgl_kadaluwarsa', [$hariIni, $tigaBulan])->count();
-
-        # Menghitung Batch Peringatan: Jika ED-nya antara 3 bulan lebih sehari, sampai 6 bulan ke depan
-        # (addDay digunakan agar jarak harinya tidak tumpang tindih dengan yang Kritis)
         $peringatan = DB::table('detail_masuk')->whereBetween('tgl_kadaluwarsa', [$tigaBulan->copy()->addDay(), $enamBulan])->count();
-
-        # Menghitung Batch Aman: Jika tanggal ED-nya masih lebih jauh dari 6 bulan ke depan
         $aman = DB::table('detail_masuk')->whereDate('tgl_kadaluwarsa', '>', $enamBulan)->count();
 
-        # 5. Mengambil 5 faktur terbaru yang berstatus Draft untuk ditampilkan di tabel tugas
+
+        # --- 3. LOGIKA UNTUK TABEL DAFTAR TUGAS TERBARU ---
+        # Mengambil 5 faktur terbaru yang berstatus Draft
         $fakturPending = DB::table('obat_masuk')
             ->where('status_verifikasi', 'Draft')
-            ->orderBy('tanggal_masuk', 'desc') # Urutkan dari tanggal terbaru
-            ->limit(5) # Batasi hanya ambil 5
+            ->orderBy('tanggal_masuk', 'desc')
+            ->limit(5)
             ->get();
 
-        # Kirim semuanya ke layar dashboard Kepala
+
+        # --- 4. KIRIM SEMUA DATA KE VIEW (HANYA BOLEH ADA 1 RETURN DI SINI) ---
         return view('kepala.dashboard', [
             'title' => 'Dashboard Kepala Apotek',
-            'menungguMasuk' => $menungguMasuk,
-            'menungguKeluar' => $menungguKeluar,
-            'stokKritis' => $stokKritis,
+            'fakturMenunggu' => $fakturMenunggu,
+            'pemusnahanMenunggu' => $pemusnahanMenunggu,
+            'obatKritis' => $obatKritis,
             'fakturPending' => $fakturPending,
-            # Data ini digabung ke dalam satu array agar mudah digambar oleh grafik batang
             'dataDefecta' => [$aman, $peringatan, $kritis, $kadaluwarsa]
         ]);
     }
 
-    # --- (PLACEHOLDER) FUNGSI-FUNGSI KEPALA APOTEK YANG SEDANG DALAM PENGERJAAN ---
-    public function validasi()
+    # --- HALAMAN VALIDASI TRANSAKSI (KEPALA APOTEK) ---
+    public function verifikasi()
     {
-        return "Halaman Validasi Transaksi (Dalam Pengerjaan)";
+        # 1. Menghitung total faktur yang berstatus Draft
+        $totalMenunggu = DB::table('obat_masuk')->where('status_verifikasi', 'Draft')->count();
+
+        # 2. Menghitung jumlah faktur "Urgent"
+        # (Faktur yang didalamnya terdapat obat dengan masa kedaluwarsa kurang dari 3 bulan)
+        $tigaBulan = \Carbon\Carbon::now()->addMonths(3)->format('Y-m-d');
+
+        $urgentCount = DB::table('obat_masuk')
+            ->join('detail_masuk', 'obat_masuk.id_masuk', '=', 'detail_masuk.id_masuk')
+            ->where('obat_masuk.status_verifikasi', 'Draft')
+            ->whereDate('detail_masuk.tgl_kadaluwarsa', '<=', $tigaBulan)
+            ->distinct('obat_masuk.id_masuk')
+            ->count('obat_masuk.id_masuk');
+
+        # 3. Mengambil daftar faktur Draft beserta perhitungan jumlah item di dalamnya (Subquery)
+        $fakturList = DB::table('obat_masuk')
+            ->select(
+                'obat_masuk.*',
+                DB::raw('(SELECT COUNT(*) FROM detail_masuk WHERE detail_masuk.id_masuk = obat_masuk.id_masuk) as jumlah_item'),
+                DB::raw('(SELECT COUNT(*) FROM detail_masuk WHERE detail_masuk.id_masuk = obat_masuk.id_masuk AND tgl_kadaluwarsa <= "' . $tigaBulan . '") as ada_urgent')
+            )
+            ->where('status_verifikasi', 'Draft')
+            ->orderBy('tanggal_masuk', 'asc') # Diurutkan dari yang paling lama menunggu
+            ->get();
+
+        return view('kepala.verifikasi', [
+            'title' => 'Verifikasi Faktur',
+            'totalMenunggu' => $totalMenunggu,
+            'urgentCount' => $urgentCount,
+            'fakturList' => $fakturList
+        ]);
     }
 
-    public function stok()
+    public function detailVerifikasi(string $id_masuk)
     {
-        return "Halaman Pantauan Stok & Defecta (Dalam Pengerjaan)";
+        # 1. Ambil data Header Faktur (Digabung dengan tabel pengguna untuk mendapat nama petugas)
+        $faktur = DB::table('obat_masuk')
+            ->join('pengguna', 'obat_masuk.id_pengguna', '=', 'pengguna.id_pengguna')
+            ->select('obat_masuk.*', 'pengguna.nama_lengkap')
+            ->where('id_masuk', $id_masuk)
+            ->first();
+
+        if (!$faktur) {
+            abort(404, 'Dokumen faktur tidak ditemukan di dalam sistem.');
+        }
+
+        # 2. Ambil data rincian item obat di dalam faktur tersebut
+        $detailObat = DB::table('detail_masuk')
+            ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
+            ->select('detail_masuk.*', 'obat.nama_obat', 'obat.dosis', 'obat.bentuk_sediaan')
+            ->where('detail_masuk.id_masuk', $id_masuk)
+            ->get();
+
+        return view('kepala.detail_verifikasi', [
+            'title' => 'Detail Verifikasi Faktur',
+            'faktur' => $faktur,
+            'detailObat' => $detailObat
+        ]);
     }
 
-    public function laporan()
+    # --- FUNGSI UNTUK MENGEKSEKUSI PERSETUJUAN/PENOLAKAN FAKTUR ---
+    public function prosesVerifikasi(Request $request, string $id_masuk)
     {
-        return "Halaman Pusat Laporan (Dalam Pengerjaan)";
+        # 1. Pastikan data status yang dikirim dari tombol form valid (hanya boleh Disetujui atau Ditolak)
+        $request->validate([
+            'status' => 'required|in:Disetujui,Ditolak'
+        ]);
+
+        $statusBaru = $request->status;
+
+        # 2. Cari data header faktur di database berdasarkan ID yang dikirim
+        $faktur = DB::table('obat_masuk')->where('id_masuk', $id_masuk)->first();
+
+        # Keamanan ganda: Jangan proses jika faktur tidak ditemukan atau statusnya sudah bukan 'Draft'
+        if (!$faktur || $faktur->status_verifikasi != 'Draft') {
+            return redirect()->route('kepala.verifikasi')->with('error', 'Faktur tidak valid atau sudah pernah diproses.');
+        }
+
+        # 3. Mulai proses transaksi Database secara aman (DB::transaction)
+        # Jika di tengah jalan terjadi error mati lampu/koneksi terputus, semua perubahan akan dibatalkan otomatis
+        DB::transaction(function () use ($id_masuk, $statusBaru, $faktur) {
+
+            # A. Update status faktur di tabel obat_masuk menjadi 'Disetujui' atau 'Ditolak'
+            DB::table('obat_masuk')
+                ->where('id_masuk', $id_masuk)
+                ->update(['status_verifikasi' => $statusBaru]);
+
+            # B. JIKA DISETUJUI: Eksekusi penambahan stok ke tabel master 'obat'
+            if ($statusBaru == 'Disetujui') {
+                # Ambil semua rincian item obat yang ada di dalam faktur ini
+                $detailFaktur = DB::table('detail_masuk')->where('id_masuk', $id_masuk)->get();
+
+                # Lakukan perulangan untuk menambahkan stok masing-masing obat
+                foreach ($detailFaktur as $item) {
+                    DB::table('obat')
+                        ->where('id_obat', $item->id_obat)
+                        ->increment('total_stok', $item->jumlah_masuk);
+                }
+            }
+
+            # C. Catat keputusan Kepala Apotek ini ke dalam Buku Log (Audit Trail)
+            $kataKerja = ($statusBaru == 'Disetujui') ? 'Menyetujui' : 'Menolak';
+            LogAudit::create([
+                'id_pengguna' => Auth::user()->id_pengguna,
+                'aktivitas'   => $kataKerja . " faktur masuk dengan No: " . $faktur->no_faktur,
+                'alamat_ip'   => request()->ip(),
+                'status'      => 'Success',
+                'created_at'  => now(),
+            ]);
+        });
+
+        # 4. Kembalikan Kepala Apotek ke halaman daftar verifikasi dengan pesan sukses
+        $pesanNotif = ($statusBaru == 'Disetujui')
+            ? 'Faktur disetujui! Stok obat berhasil ditambahkan ke dalam inventaris.'
+            : 'Faktur telah ditolak dan diarsipkan.';
+
+        return redirect()->route('kepala.verifikasi')->with('success', $pesanNotif);
     }
 
-    public function notifikasiKepala()
+    # --- FUNGSI UNTUK HALAMAN OTORISASI PEMUSNAHAN ---
+    public function pemusnahan(Request $request)
     {
-        return "Halaman Notifikasi Kepala Apotek (Dalam Pengerjaan)";
+        # 1. Tangkap parameter klik tab dari URL (default-nya adalah 'Menunggu')
+        $tab = $request->query('tab', 'Menunggu');
+
+        # 2. Hitung total antrean (untuk angka di dalam badge tombol biru)
+        $totalMenunggu = DB::table('obat_keluar')
+            ->where('status_otorisasi', 'Menunggu')
+            ->where('tujuan_pengeluaran', 'like', '%Pemusnahan%')
+            ->count();
+
+        # 3. Mulai meracik query pencarian data
+        $query = DB::table('obat_keluar')
+            ->join('pengguna', 'obat_keluar.id_pengguna', '=', 'pengguna.id_pengguna')
+            ->join('detail_keluar', 'obat_keluar.id_keluar', '=', 'detail_keluar.id_keluar')
+            ->join('obat', 'detail_keluar.id_obat', '=', 'obat.id_obat')
+            ->select(
+                'obat_keluar.id_keluar',
+                'obat_keluar.tanggal_keluar',
+                'obat_keluar.status_otorisasi', # Penting untuk dicek di tabel
+                'obat_keluar.tujuan_pengeluaran',
+                'pengguna.nama_lengkap',
+                'pengguna.peran',
+                'obat.nama_obat',
+                'obat.dosis',
+                'obat.satuan_dosis',
+                'detail_keluar.jumlah_keluar'
+            )
+            ->where('obat_keluar.tujuan_pengeluaran', 'like', '%Pemusnahan%');
+
+        # 4. Saring data sesuai tombol filter yang sedang diklik Kepala Apotek
+        if ($tab == 'Menunggu') {
+            $query->where('obat_keluar.status_otorisasi', 'Menunggu');
+        } elseif ($tab == 'Disetujui') {
+            $query->where('obat_keluar.status_otorisasi', 'Disetujui');
+        } elseif ($tab == 'Ditolak') {
+            $query->where('obat_keluar.status_otorisasi', 'Ditolak');
+        }
+        # (Catatan: Jika tab == 'Semua', query dibiarkan los tanpa filter status tambahan)
+
+        # Urutkan dari yang terbaru
+        $query->orderBy('obat_keluar.tanggal_keluar', 'desc');
+
+        # Eksekusi pencarian
+        $pengajuanList = $query->get();
+
+        return view('kepala.pemusnahan', [
+            'title' => 'Otorisasi Pemusnahan',
+            'totalMenunggu' => $totalMenunggu,
+            'pengajuanList' => $pengajuanList,
+            'activeTab' => $tab # Kirim nama tab ke Blade agar warnanya bisa disesuaikan
+        ]);
     }
 
+    # --- FUNGSI UNTUK MENGEKSEKUSI PEMUSNAHAN (SETUJU/TOLAK) ---
+    public function prosesPemusnahan(Request $request, string $id_keluar)
+    {
+        $request->validate([
+            'status' => 'required|in:Disetujui,Ditolak'
+        ]);
+
+        $statusBaru = $request->status;
+
+        $pengajuan = DB::table('obat_keluar')->where('id_keluar', $id_keluar)->first();
+
+        if (!$pengajuan || $pengajuan->status_otorisasi != 'Menunggu') {
+            return redirect()->route('kepala.pemusnahan')->with('error', 'Data tidak valid.');
+        }
+
+        DB::transaction(function () use ($id_keluar, $statusBaru, $pengajuan) {
+
+            # Update status di tabel obat_keluar
+            DB::table('obat_keluar')
+                ->where('id_keluar', $id_keluar)
+                ->update(['status_otorisasi' => $statusBaru]);
+
+            # Jika disetujui, kurangi total_stok di tabel obat
+            if ($statusBaru == 'Disetujui') {
+                $detailKeluar = DB::table('detail_keluar')->where('id_keluar', $id_keluar)->get();
+                foreach ($detailKeluar as $item) {
+                    DB::table('obat')
+                        ->where('id_obat', $item->id_obat)
+                        ->decrement('total_stok', $item->jumlah_keluar); # Decrement = mengurangi stok
+                }
+            }
+
+            # Catat ke Log Audit
+            LogAudit::create([
+                'id_pengguna' => Auth::user()->id_pengguna,
+                'aktivitas'   => ($statusBaru == 'Disetujui' ? 'Menyetujui' : 'Menolak') . " pemusnahan obat ID: " . $id_keluar,
+                'alamat_ip'   => request()->ip(),
+                'status'      => 'Success',
+                'created_at'  => now(),
+            ]);
+        });
+
+        $pesan = $statusBaru == 'Disetujui' ? 'Pemusnahan disetujui, stok telah dikurangi.' : 'Pengajuan pemusnahan ditolak.';
+        return redirect()->route('kepala.pemusnahan')->with('success', $pesan);
+    }
+
+    # --- FUNGSI UNTUK PUSAT LAPORAN & STOK ---
+    public function laporan(Request $request)
+    {
+        # 1. Tangkap parameter filter kategori dari URL (jika ada)
+        $kategoriPilihan = $request->query('kategori', 'semua');
+
+        # 2. Hitung statistik untuk 3 Kartu KPI di atas
+        $totalItem = DB::table('obat')->count();
+
+        # Menghitung stok kritis (stok yang lebih kecil atau sama dengan batas minimal, tapi belum 0)
+        # Digabung dengan stok kosong agar Kepala Apotek tahu total obat yang bermasalah
+        $stokKritis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->count();
+
+        # Menghitung berapa jenis obat yang punya batch kedaluwarsa (lewat hari ini)
+        $expiredCount = DB::table('detail_masuk')
+            ->whereDate('tgl_kadaluwarsa', '<', now())
+            ->distinct('id_obat')
+            ->count('id_obat');
+
+        # 3. Ambil daftar Kategori untuk isi dropdown filter
+        $kategoriList = DB::table('kategori')->get();
+
+        # 4. Tarik data obat beserta nama kategorinya
+        $query = DB::table('obat')
+            ->join('kategori', 'obat.id_kategori', '=', 'kategori.id_kategori')
+            ->select('obat.*', 'kategori.nama_kategori');
+
+        # Jika Kepala Apotek memilih kategori tertentu di dropdown, saring datanya
+        if ($kategoriPilihan != 'semua') {
+            $query->where('obat.id_kategori', $kategoriPilihan);
+        }
+
+        # Urutkan berdasarkan nama obat sesuai abjad, lalu bagi menjadi 10 baris per halaman (Pagination)
+        $obatList = $query->orderBy('obat.nama_obat', 'asc')->paginate(10);
+
+        return view('kepala.laporan', [
+            'title' => 'Laporan Stok & Inventaris',
+            'totalItem' => $totalItem,
+            'stokKritis' => $stokKritis,
+            'expiredCount' => $expiredCount,
+            'kategoriList' => $kategoriList,
+            'kategoriPilihan' => $kategoriPilihan,
+            'obatList' => $obatList
+        ]);
+    }
+
+    # --- FUNGSI UNTUK PUSAT NOTIFIKASI KEPALA APOTEK ---
+    public function notifikasiKepala(Request $request)
+    {
+        # Tangkap parameter tab dari URL
+        $tab = $request->query('tab', 'Semua');
+
+        # Siapkan penampung data (Collection)
+        $notifikasiList = collect();
+
+        # 1. Peringatan: Faktur Menunggu Verifikasi
+        $fakturDraft = DB::table('obat_masuk')
+            ->join('pengguna', 'obat_masuk.id_pengguna', '=', 'pengguna.id_pengguna')
+            ->where('status_verifikasi', 'Draft')
+            ->get();
+
+        foreach ($fakturDraft as $f) {
+            $notifikasiList->push((object)[
+                'tipe' => 'Persetujuan',
+                'judul' => 'Verifikasi Faktur Baru',
+                'pesan' => "Supplier <strong>{$f->nama_supplier}</strong>: Petugas {$f->nama_lengkap} telah menginput faktur <strong>#{$f->no_faktur}</strong>. Segera lakukan pengecekan.",
+                'waktu' => $f->tanggal_masuk,
+                'url' => route('kepala.verifikasi'),
+                'ikon' => 'receipt_long',
+                'warna' => 'primary'
+            ]);
+        }
+
+        # 2. Peringatan: Otorisasi Pemusnahan
+        $pemusnahanDraft = DB::table('obat_keluar')
+            ->join('detail_keluar', 'obat_keluar.id_keluar', '=', 'detail_keluar.id_keluar')
+            ->join('obat', 'detail_keluar.id_obat', '=', 'obat.id_obat')
+            ->where('status_otorisasi', 'Menunggu')
+            ->where('tujuan_pengeluaran', 'Pemusnahan/Rusak')
+            ->get();
+
+        foreach ($pemusnahanDraft as $p) {
+            $notifikasiList->push((object)[
+                'tipe' => 'Persetujuan',
+                'judul' => 'Otorisasi Pemusnahan',
+                'pesan' => "<strong>{$p->nama_obat}</strong> ({$p->jumlah_keluar} {$p->satuan_dosis}): Terdeteksi rusak/ED. Membutuhkan persetujuan pemusnahan.",
+                'waktu' => $p->tanggal_keluar,
+                'url' => route('kepala.pemusnahan'),
+                'ikon' => 'delete_forever',
+                'warna' => 'primary'
+            ]);
+        }
+
+        # 3. Peringatan: Stok Kritis / Kosong
+        $stokKritis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->get();
+
+        foreach ($stokKritis as $s) {
+            $notifikasiList->push((object)[
+                'tipe' => 'Peringatan Stok',
+                'judul' => ($s->total_stok == 0) ? 'Stok Obat Kosong' : 'Stok Minimum Tercapai',
+                'pesan' => "Ketersediaan <strong>{$s->nama_obat}</strong> berada di angka kritis (<strong>{$s->total_stok} {$s->bentuk_sediaan}</strong>). Pertimbangkan untuk order ulang.",
+                'waktu' => now()->toDateTimeString(), # Status real-time
+                'url' => route('kepala.laporan'),
+                'ikon' => ($s->total_stok == 0) ? 'error' : 'trending_down',
+                'warna' => ($s->total_stok == 0) ? 'error' : 'warning'
+            ]);
+        }
+
+        # 4. Peringatan: Obat Hampir/Telah Kedaluwarsa
+        $expired = DB::table('detail_masuk')
+            ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
+            ->whereDate('tgl_kadaluwarsa', '<=', now()->addMonths(3))
+            ->get();
+
+        foreach ($expired as $e) {
+            $isExpired = \Carbon\Carbon::parse($e->tgl_kadaluwarsa)->isPast();
+            $notifikasiList->push((object)[
+                'tipe' => 'Peringatan Stok',
+                'judul' => $isExpired ? 'Obat Telah Kedaluwarsa' : 'Peringatan Kedaluwarsa Dini',
+                'pesan' => "<strong>{$e->nama_obat}</strong> (Batch #{$e->nomor_batch}) " . ($isExpired ? "<strong>telah melewati masa kedaluwarsa!</strong>" : "akan kedaluwarsa dalam waktu dekat."),
+                'waktu' => now()->toDateTimeString(), # Status real-time
+                'url' => route('kepala.laporan'),
+                'ikon' => 'warning',
+                'warna' => 'error'
+            ]);
+        }
+
+        # Saring berdasarkan Tab yang diklik Kepala Apotek
+        if ($tab != 'Semua') {
+            $notifikasiList = $notifikasiList->where('tipe', $tab);
+        }
+
+        # Urutkan dari yang terbaru (descending)
+        $notifikasiList = $notifikasiList->sortByDesc('waktu');
+
+        return view('kepala.notifikasi', [
+            'title' => 'Pusat Notifikasi',
+            'notifikasiList' => $notifikasiList,
+            'activeTab' => $tab
+        ]);
+    }
+
+    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL KEPALA APOTEK ---
     public function profilKepala()
     {
-        return "Halaman Profil Kepala Apotek (Dalam Pengerjaan)";
+        # Ambil data pengguna yang sedang login saat ini
+        $user = Auth::user();
+
+        return view('kepala.profil', [
+            'title' => 'Profil Saya',
+            'user' => $user
+        ]);
     }
 
-    public function pengaturanKepala()
+    # --- FUNGSI UNTUK MENYIMPAN PEMBARUAN PROFIL KEPALA APOTEK ---
+    public function updateProfilKepala(Request $request)
     {
-        return "Halaman Pengaturan Kepala Apotek (Dalam Pengerjaan)";
+        $user = Auth::user();
+
+        # Validasi inputan (Nama wajib ada, username harus unik kecuali miliknya sendiri)
+        $request->validate([
+            'nama_lengkap' => 'required|string|max:100',
+            'username'     => 'required|string|max:50|unique:pengguna,username,' . $user->id_pengguna . ',id_pengguna',
+        ]);
+
+        # Perbarui data di database
+        $userModel = Pengguna::findOrFail($user->id_pengguna);
+        $userModel->update([
+            'nama_lengkap' => $request->nama_lengkap,
+            'username'     => $request->username,
+        ]);
+
+        # Catat aktivitas ini ke Log Audit
+        LogAudit::create([
+            'id_pengguna' => $user->id_pengguna,
+            'aktivitas'   => 'Memperbarui data profil pribadi',
+            'alamat_ip'   => $request->ip(),
+            'status'      => 'Success',
+            'created_at'  => now(),
+        ]);
+
+        # Pastikan route() ini mengarah ke nama rute yang benar-benar ada di web.php
+        return redirect()->route('kepala.profil')->with('success', 'Profil Anda berhasil diperbarui!');
     }
 
 
@@ -584,7 +963,13 @@ class DashboardController extends Controller
         $aktivitasTerbaru = $masuk->concat($keluar)->sortByDesc('tanggal')->take(5);
 
         # Tampilkan dashboard petugas beserta datanya
-        return view('petugas.dashboard', compact('totalObat', 'stokMenipis', 'akanKedaluwarsa', 'aktivitasTerbaru'));
+        return view('petugas.dashboard', [
+            'title' => 'Dashboard Operasional',
+            'totalObat' => $totalObat,
+            'stokMenipis' => $stokMenipis,
+            'akanKedaluwarsa' => $akanKedaluwarsa,
+            'aktivitasTerbaru' => $aktivitasTerbaru
+        ]);
     }
 
     # --- (PLACEHOLDER) FUNGSI-FUNGSI PETUGAS APOTEK YANG SEDANG DALAM PENGERJAAN ---
@@ -613,13 +998,9 @@ class DashboardController extends Controller
         return "Halaman Notifikasi Petugas Apotek (Dalam Pengerjaan)";
     }
 
+    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL PETUGAS APOTEK ---
     public function profilPetugas()
     {
         return "Halaman Profil Petugas Apotek (Dalam Pengerjaan)";
-    }
-
-    public function pengaturanPetugas()
-    {
-        return "Halaman Pengaturan Petugas Apotek (Dalam Pengerjaan)";
     }
 }

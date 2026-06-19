@@ -1,49 +1,43 @@
-@extends('layouts.kepala') {{-- Pastikan kamu sudah membuat file layout ini --}}
+@extends('layouts.kepala')
 
 @section('content')
     <div class="space-y-8">
 
-        <!-- Page Header -->
         <div>
             <h2 class="text-2xl md:text-3xl font-display font-bold text-gray-800 tracking-tight">Dashboard Kepala Apotek</h2>
             <p class="text-gray-500 mt-2 text-sm">Ringkasan analitik persediaan dan daftar tunggu persetujuan.</p>
         </div>
 
-        <!-- Bento Grid: Early Warning Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            <!-- Card 1: Verifikasi Faktur -->
             <div
                 class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                 <div class="flex items-start justify-between mb-4">
                     <div class="p-2 bg-teal-50 rounded-lg">
-                        <!-- Heroicons: Clipboard Document Check -->
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6 text-teal-600">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75" />
                         </svg>
                     </div>
-                    @if ($menungguMasuk > 0)
+                    @if ($fakturMenunggu > 0)
                         <span class="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">Urgent</span>
                     @endif
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Menunggu Verifikasi (Draft)</p>
-                    <h3 class="text-3xl font-bold text-gray-800 mb-6">{{ $menungguMasuk }} Faktur</h3>
+                    <h3 class="text-3xl font-bold text-gray-800 mb-6">{{ $fakturMenunggu }} Faktur</h3>
                 </div>
-                <button
-                    class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                <a href="{{ route('kepala.verifikasi') }}"
+                    class="w-full block text-center bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
                     Cek Faktur
-                </button>
+                </a>
             </div>
 
-            <!-- Card 2: Otorisasi Keluar -->
             <div
                 class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                 <div class="flex items-start justify-between mb-4">
                     <div class="p-2 bg-blue-50 rounded-lg">
-                        <!-- Heroicons: Archive Box Arrow Down -->
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6 text-blue-600">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -53,20 +47,18 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Otorisasi Permintaan/Keluar</p>
-                    <h3 class="text-3xl font-bold text-gray-800 mb-6">{{ $menungguKeluar }} Transaksi</h3>
+                    <h3 class="text-3xl font-bold text-gray-800 mb-6">{{ $pemusnahanMenunggu }} Transaksi</h3>
                 </div>
-                <button
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                <a href="{{ route('kepala.pemusnahan') }}"
+                    class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
                     Tinjau Permintaan
-                </button>
+                </a>
             </div>
 
-            <!-- Card 3: Alert Stok Kritis -->
             <div
                 class="bg-red-50 rounded-xl border border-red-200 p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
                 <div class="flex items-start justify-between mb-4 relative z-10">
                     <div class="p-2 bg-white rounded-lg">
-                        <!-- Heroicons: Exclamation Triangle -->
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6 text-red-600">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -76,24 +68,22 @@
                 </div>
                 <div class="relative z-10">
                     <p class="text-sm text-red-700 font-medium mb-1">Peringatan Stok Tersedia</p>
-                    <h3 class="text-3xl font-bold text-red-700 mb-6">{{ $stokKritis }} Obat Kritis</h3>
+                    <h3 class="text-3xl font-bold text-red-700 mb-6">{{ $obatKritis }} Obat Kritis</h3>
                 </div>
-                <button
-                    class="w-full bg-white hover:bg-red-100 text-red-700 py-2 px-4 rounded-lg text-sm font-bold border border-red-300 transition-colors relative z-10">
+                <a href="{{ route('kepala.laporan') }}"
+                    class="w-full block text-center bg-white hover:bg-red-100 text-red-700 py-2 px-4 rounded-lg text-sm font-bold border border-red-300 transition-colors relative z-10">
                     Lihat Rincian Stok
-                </button>
+                </a>
             </div>
         </div>
 
-        <!-- Bagian Grafik dan Tabel -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- Tabel Tugas Menunggu Persetujuan -->
             <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
                 <div class="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <h3 class="text-lg font-bold text-gray-800">Menunggu Verifikasi Faktur</h3>
                     <span
-                        class="bg-teal-100 text-teal-800 font-medium text-xs px-2.5 py-1 rounded-full">{{ $menungguMasuk }}
+                        class="bg-teal-100 text-teal-800 font-medium text-xs px-2.5 py-1 rounded-full">{{ $fakturMenunggu }}
                         Tugas</span>
                 </div>
                 <div class="overflow-x-auto flex-1">
@@ -115,8 +105,8 @@
                                     <td class="px-6 py-4">
                                         {{ \Carbon\Carbon::parse($faktur->tanggal_masuk)->format('d M Y') }}</td>
                                     <td class="px-6 py-4 text-right">
-                                        <button
-                                            class="text-teal-600 hover:text-teal-800 font-medium text-sm">Tinjau</button>
+                                        <a href="{{ route('kepala.verifikasi.detail', $faktur->id_masuk) }}"
+                                            class="text-teal-600 hover:text-teal-800 font-medium text-sm">Tinjau</a>
                                     </td>
                                 </tr>
                             @empty
@@ -131,7 +121,6 @@
                 </div>
             </div>
 
-            <!-- Grafik Peta Kedaluwarsa Obat -->
             <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
                 <h3 class="text-lg font-bold text-gray-800 mb-1">Peta Kedaluwarsa Obat (Defecta)</h3>
                 <p class="text-sm text-gray-500 mb-4">Pemantauan masa kedaluwarsa (FEFO) seluruh batch di inventaris.</p>
@@ -140,8 +129,6 @@
             </div>
         </div>
 
-        <!-- Skrip ApexCharts -->
-        <!-- Skrip ApexCharts untuk Bar Chart Defecta -->
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
         <script>
             // Menangkap data dari controller
