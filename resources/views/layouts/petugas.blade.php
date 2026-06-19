@@ -51,11 +51,13 @@
 
     <aside
         class="bg-surface-container-low text-primary hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 border-r border-outline-variant py-4 space-y-2 z-40">
-        <div class="px-6 mb-6">
-            <h1 class="font-display text-2xl font-bold text-primary tracking-tight">SIOPAL</h1>
+        <div class="px-8 mb-8 flex items-center gap-4 -mt-3">
+            <a href="{{ route('petugas.dashboard') }}" class="flex items-center gap-3">
+                <img src="{{ asset('images/Logo SIOPAL.png') }}" alt="Logo SIOPAL" class="h-10 w-auto object-contain drop-shadow-sm">
+            </a>
         </div>
         <nav class="flex-1 px-2 space-y-1">
-            <a class="flex items-center rounded-lg px-4 py-3 mx-2 font-semibold transition-all {{ Request::is('petugas/dashboard') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
+            <a class="flex items-center rounded-lg px-4 py-3 mx-2 -mt-6 font-semibold transition-all {{ Request::is('petugas/dashboard') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
                 href="{{ route('petugas.dashboard') }}">
                 <span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
             </a>
