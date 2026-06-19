@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet">
+    <link rel="icon" type="image/Logo Browser SIOPAL.png" href="{{ asset('images/Logo Browser SIOPAL.png') }}"/>
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -51,13 +52,13 @@
 
     <aside
         class="bg-surface-container-low text-primary hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 border-r border-outline-variant py-4 space-y-2 z-40">
-        <div class="px-8 mb-8 flex items-center gap-4 -mt-3">
+        <div class="px-8 mb-8 flex items-center gap-4 ml-7 mt-3">
             <a href="{{ route('petugas.dashboard') }}" class="flex items-center gap-3">
                 <img src="{{ asset('images/Logo SIOPAL.png') }}" alt="Logo SIOPAL" class="h-10 w-auto object-contain drop-shadow-sm">
             </a>
         </div>
         <nav class="flex-1 px-2 space-y-1">
-            <a class="flex items-center rounded-lg px-4 py-3 mx-2 -mt-6 font-semibold transition-all {{ Request::is('petugas/dashboard') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
+            <a class="flex items-center rounded-lg px-4 py-3 mx-2 -mt-4 font-semibold transition-all {{ Request::is('petugas/dashboard') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
                 href="{{ route('petugas.dashboard') }}">
                 <span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
             </a>
