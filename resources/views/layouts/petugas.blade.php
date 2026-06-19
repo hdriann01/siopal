@@ -58,7 +58,7 @@
             </a>
         </div>
         <nav class="flex-1 px-2 space-y-1">
-            <a class="flex items-center rounded-lg px-4 py-3 mx-2 -mt-4 font-semibold transition-all {{ Request::is('petugas/dashboard') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
+            <a class="flex items-center rounded-lg px-4 py-3 mx-2 -mt-6 font-semibold transition-all {{ Request::is('petugas/dashboard') ? 'bg-primary-container text-white hover:bg-primary' : 'text-on-surface-variant hover:bg-teal-50 hover:text-primary' }}"
                 href="{{ route('petugas.dashboard') }}">
                 <span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
             </a>
@@ -132,9 +132,9 @@
             </div>
         </header>
 
-        <div class="p-6 md:p-8 w-full">
+        <main class="flex-1 overflow-y-auto bg-gray-50 w-full p-6 lg:p-8">
             @yield('content')
-        </div>
+        </main>
     </main>
 
 </body>

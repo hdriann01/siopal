@@ -147,28 +147,27 @@ Route::middleware(['auth'])->group(function () {
     # 6. GRUP RUTE PETUGAS APOTEK (FOLDER AWAL: PETUGAS/)
     # =====================================================================
 
-    # Membungkus seluruh rute agar otomatis memiliki awalan URL '/petugas' dan awalan nama 'petugas.'
     Route::prefix('petugas')->name('petugas.')->group(function () {
-
-        # Halaman dashboard pantauan operasional harian bagi Petugas Apotek.
         Route::get('/dashboard', [DashboardController::class, 'petugas'])->name('dashboard');
 
-        # Rute untuk mengakses buku/katalog induk seluruh jenis obat di apotek.
         Route::get('/obat', [DashboardController::class, 'katalogObat'])->name('obat');
 
-        # Rute untuk mencatat penerimaan/faktur obat masuk dari distributor (PBF).
+        # --- TAMBAHKAN 2 BARIS INI ---
+        # ... (Rute petugas lainnya) ...
+        Route::get('/obat', [DashboardController::class, 'katalogObat'])->name('obat');
+        Route::get('/obat/tambah', [DashboardController::class, 'tambahObat'])->name('obat.tambah');
+
+        # --- TAMBAHKAN BARIS INI UNTUK MEMPROSES PENYIMPANAN DATA FORM ---
+        Route::post('/obat/simpan', [DashboardController::class, 'simpanObat'])->name('obat.simpan');
+
+        Route::get('/obat/edit/{id}', [DashboardController::class, 'editObat'])->name('obat.edit');
+        # ...
+        # -----------------------------
+
         Route::get('/masuk', [DashboardController::class, 'obatMasuk'])->name('masuk');
-
-        # Rute untuk mencatat pengeluaran obat (baik untuk resep, rusak, maupun kedaluwarsa).
         Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
-
-        # Rute untuk melakukan pencocokan fisik barang di gudang dengan data di sistem (Stok Opname).
         Route::get('/opname', [DashboardController::class, 'stokOpname'])->name('opname');
-
-        # Rute untuk melihat peringatan sistem khusus wilayah kerja petugas.
         Route::get('/notifikasi', [DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
-
-        # Rute untuk mengelola profil pribadi milik Petugas Apotek.
         Route::get('/profil', [DashboardController::class, 'profilPetugas'])->name('profil');
     });
 });

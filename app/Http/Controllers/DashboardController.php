@@ -972,10 +972,44 @@ class DashboardController extends Controller
         ]);
     }
 
-    # --- (PLACEHOLDER) FUNGSI-FUNGSI PETUGAS APOTEK YANG SEDANG DALAM PENGERJAAN ---
-    public function katalogObat()
+    # --- FUNGSI UNTUK HALAMAN KATALOG OBAT (PETUGAS) ---
+    public function katalogObat(Request $request)
     {
-        return "Halaman Katalog Obat Petugas Apotek (Dalam Pengerjaan)";
+        # Menangkap parameter dari URL (kolom pencarian & dropdown filter)
+        $search = $request->query('search');
+        $kategoriId = $request->query('kategori');
+
+        # Mulai meracik perintah pencarian data ke database (Tabel Obat + Tabel Kategori)
+        $query = DB::table('obat')
+            ->join('kategori', 'obat.id_kategori', '=', 'kategori.id_kategori')
+            ->select('obat.*', 'kategori.nama_kategori');
+
+        # Jika Petugas mengetik sesuatu di kotak pencarian...
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('obat.nama_obat', 'like', '%' . $search . '%')
+                  ->orWhere('obat.id_obat', 'like', '%' . $search . '%');
+            });
+        }
+
+        # Jika Petugas memilih kategori tertentu di dropdown filter...
+        if ($kategoriId) {
+            $query->where('obat.id_kategori', $kategoriId);
+        }
+
+        # Urutkan berdasarkan nama obat A-Z, lalu batasi 10 baris per halaman (Pagination)
+        $obatList = $query->orderBy('obat.nama_obat', 'asc')->paginate(10);
+
+        # Ambil daftar seluruh kategori untuk mengisi pilihan dropdown filter
+        $kategoriList = DB::table('kategori')->orderBy('nama_kategori', 'asc')->get();
+
+        return view('petugas.katalog', [
+            'title' => 'Inventaris & Katalog Obat',
+            'obatList' => $obatList,
+            'kategoriList' => $kategoriList,
+            'search' => $search,
+            'kategoriPilihan' => $kategoriId
+        ]);
     }
 
     public function obatMasuk()
@@ -1002,5 +1036,70 @@ class DashboardController extends Controller
     public function profilPetugas()
     {
         return "Halaman Profil Petugas Apotek (Dalam Pengerjaan)";
+    }
+
+    # --- FUNGSI UNTUK MENAMPILKAN FORM TAMBAH OBAT ---
+    public function tambahObat()
+    {
+        # Ambil daftar kategori dari database untuk mengisi pilihan dropdown
+        $kategoriList = DB::table('kategori')->orderBy('nama_kategori', 'asc')->get();
+
+        return view('petugas.tambah-obat', [
+            'title' => 'Tambah Obat Baru',
+            'kategoriList' => $kategoriList
+        ]);
+    }
+
+    # --- FUNGSI UNTUK MENYIMPAN DATA OBAT BARU KE DATABASE ---
+    public function simpanObat(Request $request)
+    {
+        # 1. Validasi inputan dari form
+        $request->validate([
+            'nama_obat' => 'required|string|max:100',
+            'id_kategori' => 'required|string',
+            'dosis' => 'required|numeric',
+            'satuan_dosis' => 'required|string',
+            'bentuk_sediaan' => 'required|string',
+            'letak_rak' => 'nullable|string|max:50',
+            'batas_stok_min' => 'required|integer|min:0',
+        ]);
+
+        # 2. Buat ID Obat Otomatis (Contoh: Jika yang terakhir OBT002, maka ini jadi OBT003)
+        $lastObat = DB::table('obat')->orderBy('id_obat', 'desc')->first();
+        $newId = 'OBT001';
+        if ($lastObat) {
+            $lastNumber = (int) substr($lastObat->id_obat, 3); # Mengambil angka setelah kata 'OBT'
+            $newId = 'OBT' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        }
+
+        # 3. Simpan data ke dalam tabel 'obat'
+        DB::table('obat')->insert([
+            'id_obat' => $newId,
+            'id_kategori' => $request->id_kategori,
+            'nama_obat' => $request->nama_obat,
+            'dosis' => $request->dosis,
+            'satuan_dosis' => $request->satuan_dosis,
+            'bentuk_sediaan' => $request->bentuk_sediaan,
+            'letak_rak' => $request->letak_rak,
+            'batas_stok_min' => $request->batas_stok_min,
+            'total_stok' => 0, # Obat baru selalu diawali dengan stok 0 (akan bertambah lewat Faktur Masuk)
+        ]);
+
+        # 4. Catat aktivitas ini ke Log Audit
+        LogAudit::create([
+            'id_pengguna' => Auth::user()->id_pengguna,
+            'aktivitas'   => "Menambahkan master obat baru: " . $request->nama_obat,
+            'alamat_ip'   => request()->ip(),
+            'status'      => 'Success',
+            'created_at'  => now(),
+        ]);
+
+        # 5. Kembalikan ke halaman katalog dengan pesan sukses
+        return redirect()->route('petugas.obat')->with('success', 'Obat baru berhasil ditambahkan ke katalog!');
+    }
+
+    public function editObat(string $id)
+    {
+        return "Halaman Form Edit Obat untuk ID: " . $id . " (Dalam Pengerjaan)";
     }
 }
