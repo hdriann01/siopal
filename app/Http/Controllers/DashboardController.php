@@ -966,6 +966,42 @@ class DashboardController extends Controller
         return "Halaman Form Edit Obat untuk ID: " . $id . " (Dalam Pengerjaan)";
     }
 
+    # --- FUNGSI UNTUK MENGHAPUS OBAT DARI KATALOG ---
+    public function hapusObat(string $id, Request $request)
+    {
+        # 1. Cari data obat berdasarkan ID yang dikirim dari tombol
+        $obat = DB::table('obat')->where('id_obat', $id)->first();
+
+        # Jika obat tidak ditemukan, kembalikan dengan pesan error
+        if (!$obat) {
+            return back()->with('error', 'Gagal: Data obat tidak ditemukan di database.');
+        }
+
+        # Simpan nama obat ke variabel sementara untuk keperluan pencatatan riwayat (Log)
+        $namaObat = $obat->nama_obat;
+
+        try {
+            # 2. Hapus data obat tersebut dari tabel 'obat'
+            DB::table('obat')->where('id_obat', $id)->delete();
+
+            # 3. Catat aktivitas penghapusan ini ke Log Audit
+            LogAudit::create([
+                'id_pengguna' => Auth::user()->id_pengguna,
+                'aktivitas'   => "Menghapus master obat dari katalog: " . $namaObat,
+                'alamat_ip'   => $request->ip(),
+                'status'      => 'Success',
+                'created_at'  => now(),
+            ]);
+
+            # 4. Kembalikan ke halaman sebelumnya dengan pesan sukses warna hijau
+            return back()->with('success', 'Data obat "' . $namaObat . '" berhasil dihapus dari katalog!');
+            
+        } catch (\Illuminate\Database\QueryException $e) {
+            # KEAMANAN DATABASE: Jika obat gagal dihapus karena sedang dipakai di tabel Transaksi (Obat Masuk/Keluar)
+            return back()->with('error', 'Gagal: Obat "' . $namaObat . '" tidak bisa dihapus karena memiliki riwayat transaksi di sistem.');
+        }
+    }
+
     # --- FUNGSI UNTUK MENYIMPAN PERUBAHAN PROFIL PETUGAS ---
     public function updateProfilPetugas(Request $request)
     {
