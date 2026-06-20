@@ -168,6 +168,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
         Route::get('/opname', [DashboardController::class, 'stokOpname'])->name('opname');
         Route::get('/notifikasi', [DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
+        // Rute untuk menampilkan halaman (Sudah benar)
         Route::get('/profil', [DashboardController::class, 'profilPetugas'])->name('profil');
+
+        // PERBAIKAN: Ubah Route::get menjadi Route::post, dan hapus tulisan 'petugas.' di dalam name()
+        Route::post('/profil/update', [DashboardController::class, 'updateProfilPetugas'])->name('update-profil');
     });
 });

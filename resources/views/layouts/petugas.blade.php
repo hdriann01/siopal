@@ -109,8 +109,8 @@
                     $unreadNotifCount = \App\Models\Notifikasi::where('status_baca', 'Belum')->count();
                 @endphp
 
-                <a href="{{ route('petugas.notifikasi') }}"
-                    class="text-on-surface-variant hover:bg-gray-100 p-2 rounded-full relative transition-colors">
+                <a href="{{ route('petugas.notifikasi') }}">
+                    <span class="text-on-surface-variant hover:bg-gray-100 p-2 rounded-full relative transition-colors">
                     <span class="material-symbols-outlined">notifications</span>
 
                     @if ($unreadNotifCount > 0)

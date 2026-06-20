@@ -8,7 +8,7 @@
 namespace App\Http\Controllers;
 
 # Mengimpor class Request untuk menangkap data ketikan/inputan dari form atau URL
-use Illuminate\Http\Request;
+use Illuminate\Http\Request;;
 # Mengimpor alat (Auth) untuk mendapatkan data pengguna yang sedang login saat ini
 use Illuminate\Support\Facades\Auth;
 # Mengimpor alat (DB) untuk melakukan pencarian/perintah langsung ke database tanpa model
@@ -1027,15 +1027,47 @@ class DashboardController extends Controller
         return "Halaman Stok Opname Petugas Apotek (Dalam Pengerjaan)";
     }
 
+    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN NOTIFIKASI PETUGAS ---
     public function notifikasiPetugas()
     {
-        return "Halaman Notifikasi Petugas Apotek (Dalam Pengerjaan)";
+        // CONTOH DATA DINAMIS
+        $notifikasiList = [
+            (object)[
+                'jenis' => 'Faktur', 'judul' => 'Faktur Disetujui', 'pesan' => 'Faktur <strong>#INV-092</strong> telah diverifikasi.',
+                'waktu' => 'Baru saja', 'is_read' => false,
+            ],
+            (object)[
+                'jenis' => 'Stok Kritis', 'judul' => 'Stok Kritis', 'pesan' => 'Obat <strong>Amoxicillin 500mg</strong> sisa <strong>5 Strip</strong>.',
+                'waktu' => 'Kemarin, 14:30', 'is_read' => false,
+            ],
+            (object)[
+                'jenis' => 'Info', 'judul' => 'Jadwal Stok Opname', 'pesan' => 'Hari ini adalah jadwal stok opname.',
+                'waktu' => 'Kemarin, 08:00', 'is_read' => true,
+            ]
+        ];
+
+        // MENGOSONGKAN DATA (Sesuai keinginanmu saat ini)
+        // Jadikan komentar baris di bawah ini jika ingin melihat tombol berubah Hijau Full!
+        $notifikasiList = [];
+
+        // LOGIKA PENGECEKAN: Adakah notifikasi yang belum dibaca (is_read == false)?
+        $hasUnread = collect($notifikasiList)->contains('is_read', false);
+
+        return view('petugas.notifikasi', [
+            'title' => 'Pusat Notifikasi',
+            'notifikasiList' => $notifikasiList,
+            'hasUnread' => $hasUnread // Melempar hasil pengecekan ke file Blade
+        ]);
     }
 
     # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL PETUGAS APOTEK ---
     public function profilPetugas()
     {
-        return "Halaman Profil Petugas Apotek (Dalam Pengerjaan)";
+        return view('petugas.profil', [
+            'title' => 'Profil Saya',
+            // Memanggil data pengguna yang sedang login saat ini
+            'user' => Auth::user()
+        ]);
     }
 
     # --- FUNGSI UNTUK MENAMPILKAN FORM TAMBAH OBAT ---
@@ -1101,5 +1133,32 @@ class DashboardController extends Controller
     public function editObat(string $id)
     {
         return "Halaman Form Edit Obat untuk ID: " . $id . " (Dalam Pengerjaan)";
+    }
+
+    # --- FUNGSI UNTUK MENYIMPAN PERUBAHAN PROFIL PETUGAS ---
+    public function updateProfilPetugas(Request $request)
+    {
+        # Ambil data user yang sedang login saat ini
+        $user = Auth::user();
+
+        # Mendapatkan ID Pengguna
+        $idPengguna = $user->id_pengguna ?? $user->id;
+
+        # 1. Validasi inputan form (Ubah nama_pengguna menjadi nama_lengkap)
+        $request->validate([
+            'nama_lengkap' => 'required|string|max:100',
+            'username'     => 'required|string|max:50|unique:pengguna,username,' . $idPengguna . ',id_pengguna',
+        ]);
+
+        # 2. Perbarui data menggunakan Query Builder
+        DB::table('pengguna')
+            ->where('id_pengguna', $idPengguna)
+            ->update([
+                'nama_lengkap' => $request->nama_lengkap, # <--- DISESUAIKAN
+                'username'     => $request->username,
+            ]);
+
+        # 3. Kembalikan ke halaman profil dengan pesan sukses
+        return redirect()->route('petugas.profil')->with('success', 'Data profil berhasil diperbarui!');
     }
 }
