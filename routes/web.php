@@ -75,13 +75,6 @@ Route::middleware(['auth'])->group(function () {
     # Menghapus baris data staf tersebut secara permanen dari database (menggunakan metode DELETE).
     Route::delete('/admin/proses-hapus/{id}', [DashboardController::class, 'prosesHapus'])->name('admin.proses-hapus');
 
-    # --- MODUL PUSAT NOTIFIKASI ---
-    # Menampilkan daftar seluruh alarm dan peringatan sistem (keamanan akun / peringatan stok obat).
-    Route::get('/admin/notifikasi', [DashboardController::class, 'notifikasi'])->name('admin.notifikasi');
-
-    # Mengubah status seluruh notifikasi menjadi 'Sudah Dibaca' sekaligus dalam satu kali klik.
-    Route::post('/admin/notifikasi/baca-semua', [DashboardController::class, 'bacaSemuaNotifikasi'])->name('admin.baca-semua-notif');
-
     # --- MODUL PENGATURAN & PROFIL ---
     # Membuka halaman untuk mengelola identitas apotek dan saklar keamanan global aplikasi.
     Route::get('/admin/pengaturan', [DashboardController::class, 'pengaturan'])->name('admin.pengaturan');
@@ -101,6 +94,17 @@ Route::middleware(['auth'])->group(function () {
 
     # Merender (menghasilkan) laporan riwayat aktivitas tersebut menjadi file dokumen PDF untuk diunduh.
     Route::get('/admin/audit-logs/pdf', [DashboardController::class, 'exportPdfAuditLogs'])->name('admin.audit-logs.pdf');
+
+
+    # =====================================================================
+    # RUTE GLOBAL (BISA DIAKSES SEMUA PERAN YANG SUDAH LOGIN)
+    # =====================================================================
+
+    # 1. Menampilkan halaman pusat notifikasi
+    Route::get('/notifikasi', [DashboardController::class, 'pusatNotifikasi'])->name('notifikasi.global');
+
+    # 2. Mengeksekusi tombol "Tandai Semua Dibaca"
+    Route::post('/notifikasi/baca-semua', [DashboardController::class, 'bacaSemuaNotifikasi'])->name('notifikasi.baca-semua');
 
     # =====================================================================
     # 5. GRUP RUTE KEPALA APOTEK (FOLDER AWAL: KEPALA/)
@@ -133,9 +137,6 @@ Route::middleware(['auth'])->group(function () {
         # Membuka halaman pusat untuk mencetak laporan stok sediaan dan riwayat transaksi.
         Route::get('/laporan', [DashboardController::class, 'laporan'])->name('laporan');
 
-        # Membuka halaman daftar pemberitahuan/alarm khusus untuk Kepala Apotek.
-        Route::get('/notifikasi', [DashboardController::class, 'notifikasiKepala'])->name('notifikasi');
-
         # Membuka halaman profil pribadi milik Kepala Apotek.
         Route::get('/profil', [DashboardController::class, 'profilKepala'])->name('profil');
 
@@ -167,11 +168,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/masuk', [DashboardController::class, 'obatMasuk'])->name('masuk');
         Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
         Route::get('/opname', [DashboardController::class, 'stokOpname'])->name('opname');
-        Route::get('/notifikasi', [DashboardController::class, 'notifikasiPetugas'])->name('notifikasi');
         // Rute untuk menampilkan halaman (Sudah benar)
         Route::get('/profil', [DashboardController::class, 'profilPetugas'])->name('profil');
-
-        // PERBAIKAN: Ubah Route::get menjadi Route::post, dan hapus tulisan 'petugas.' di dalam name()
-        Route::post('/profil/update', [DashboardController::class, 'updateProfilPetugas'])->name('update-profil');
     });
 });

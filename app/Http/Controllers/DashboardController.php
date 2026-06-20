@@ -299,47 +299,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN PUSAT NOTIFIKASI ---
-    public function notifikasi(Request $request)
-    {
-        # Mengecek tab apa yang sedang diklik (Semua, Keamanan, atau Sistem). Default-nya adalah 'Semua'
-        $tab = $request->query('tab', 'Semua');
-
-        # Siapkan perintah: ambil semua peringatan dari yang paling baru
-        $query = Notifikasi::orderBy('created_at', 'desc');
-
-        # Jika tab bukan 'Semua', saring tipe notifikasinya sesuai tab yang diklik
-        if ($tab == 'Keamanan') {
-            $query->where('tipe', 'Keamanan');
-        } elseif ($tab == 'Sistem') {
-            $query->where('tipe', 'Sistem');
-        }
-
-        # Eksekusi pencarian
-        $notifikasi = $query->get();
-
-        # Hitung ada berapa notifikasi yang statusnya masih 'Belum' dibaca (untuk memunculkan angka merah)
-        $belumDibaca = Notifikasi::where('status_baca', 'Belum')->count();
-
-        # Tampilkan halamannya
-        return view('admin.notifikasi', [
-            'title' => 'Pusat Notifikasi',
-            'notifikasi' => $notifikasi,
-            'belumDibaca' => $belumDibaca,
-            'activeTab' => $tab # Memberitahu halaman HTML tab mana yang harus diberi warna aktif
-        ]);
-    }
-
-    # --- FUNGSI UNTUK TOMBOL "TANDAI SEMUA DIBACA" ---
-    public function bacaSemuaNotifikasi()
-    {
-        # Cari seluruh baris di tabel notifikasi yang statusnya 'Belum', lalu paksa ubah menjadi 'Sudah'
-        Notifikasi::where('status_baca', 'Belum')->update(['status_baca' => 'Sudah']);
-
-        # Refresh halaman
-        return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
-    }
-
     # --- FUNGSI UNTUK MENAMPILKAN PENGATURAN GLOBAL SISTEM ---
     public function pengaturan()
     {
@@ -780,101 +739,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    # --- FUNGSI UNTUK PUSAT NOTIFIKASI KEPALA APOTEK ---
-    public function notifikasiKepala(Request $request)
-    {
-        # Tangkap parameter tab dari URL
-        $tab = $request->query('tab', 'Semua');
-
-        # Siapkan penampung data (Collection)
-        $notifikasiList = collect();
-
-        # 1. Peringatan: Faktur Menunggu Verifikasi
-        $fakturDraft = DB::table('obat_masuk')
-            ->join('pengguna', 'obat_masuk.id_pengguna', '=', 'pengguna.id_pengguna')
-            ->where('status_verifikasi', 'Draft')
-            ->get();
-
-        foreach ($fakturDraft as $f) {
-            $notifikasiList->push((object)[
-                'tipe' => 'Persetujuan',
-                'judul' => 'Verifikasi Faktur Baru',
-                'pesan' => "Supplier <strong>{$f->nama_supplier}</strong>: Petugas {$f->nama_lengkap} telah menginput faktur <strong>#{$f->no_faktur}</strong>. Segera lakukan pengecekan.",
-                'waktu' => $f->tanggal_masuk,
-                'url' => route('kepala.verifikasi'),
-                'ikon' => 'receipt_long',
-                'warna' => 'primary'
-            ]);
-        }
-
-        # 2. Peringatan: Otorisasi Pemusnahan
-        $pemusnahanDraft = DB::table('obat_keluar')
-            ->join('detail_keluar', 'obat_keluar.id_keluar', '=', 'detail_keluar.id_keluar')
-            ->join('obat', 'detail_keluar.id_obat', '=', 'obat.id_obat')
-            ->where('status_otorisasi', 'Menunggu')
-            ->where('tujuan_pengeluaran', 'Pemusnahan/Rusak')
-            ->get();
-
-        foreach ($pemusnahanDraft as $p) {
-            $notifikasiList->push((object)[
-                'tipe' => 'Persetujuan',
-                'judul' => 'Otorisasi Pemusnahan',
-                'pesan' => "<strong>{$p->nama_obat}</strong> ({$p->jumlah_keluar} {$p->satuan_dosis}): Terdeteksi rusak/ED. Membutuhkan persetujuan pemusnahan.",
-                'waktu' => $p->tanggal_keluar,
-                'url' => route('kepala.pemusnahan'),
-                'ikon' => 'delete_forever',
-                'warna' => 'primary'
-            ]);
-        }
-
-        # 3. Peringatan: Stok Kritis / Kosong
-        $stokKritis = DB::table('obat')->whereRaw('total_stok <= batas_stok_min')->get();
-
-        foreach ($stokKritis as $s) {
-            $notifikasiList->push((object)[
-                'tipe' => 'Peringatan Stok',
-                'judul' => ($s->total_stok == 0) ? 'Stok Obat Kosong' : 'Stok Minimum Tercapai',
-                'pesan' => "Ketersediaan <strong>{$s->nama_obat}</strong> berada di angka kritis (<strong>{$s->total_stok} {$s->bentuk_sediaan}</strong>). Pertimbangkan untuk order ulang.",
-                'waktu' => now()->toDateTimeString(), # Status real-time
-                'url' => route('kepala.laporan'),
-                'ikon' => ($s->total_stok == 0) ? 'error' : 'trending_down',
-                'warna' => ($s->total_stok == 0) ? 'error' : 'warning'
-            ]);
-        }
-
-        # 4. Peringatan: Obat Hampir/Telah Kedaluwarsa
-        $expired = DB::table('detail_masuk')
-            ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
-            ->whereDate('tgl_kadaluwarsa', '<=', now()->addMonths(3))
-            ->get();
-
-        foreach ($expired as $e) {
-            $isExpired = \Carbon\Carbon::parse($e->tgl_kadaluwarsa)->isPast();
-            $notifikasiList->push((object)[
-                'tipe' => 'Peringatan Stok',
-                'judul' => $isExpired ? 'Obat Telah Kedaluwarsa' : 'Peringatan Kedaluwarsa Dini',
-                'pesan' => "<strong>{$e->nama_obat}</strong> (Batch #{$e->nomor_batch}) " . ($isExpired ? "<strong>telah melewati masa kedaluwarsa!</strong>" : "akan kedaluwarsa dalam waktu dekat."),
-                'waktu' => now()->toDateTimeString(), # Status real-time
-                'url' => route('kepala.laporan'),
-                'ikon' => 'warning',
-                'warna' => 'error'
-            ]);
-        }
-
-        # Saring berdasarkan Tab yang diklik Kepala Apotek
-        if ($tab != 'Semua') {
-            $notifikasiList = $notifikasiList->where('tipe', $tab);
-        }
-
-        # Urutkan dari yang terbaru (descending)
-        $notifikasiList = $notifikasiList->sortByDesc('waktu');
-
-        return view('kepala.notifikasi', [
-            'title' => 'Pusat Notifikasi',
-            'notifikasiList' => $notifikasiList,
-            'activeTab' => $tab
-        ]);
-    }
 
     # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL KEPALA APOTEK ---
     public function profilKepala()
@@ -988,7 +852,7 @@ class DashboardController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('obat.nama_obat', 'like', '%' . $search . '%')
-                  ->orWhere('obat.id_obat', 'like', '%' . $search . '%');
+                    ->orWhere('obat.id_obat', 'like', '%' . $search . '%');
             });
         }
 
@@ -1025,39 +889,6 @@ class DashboardController extends Controller
     public function stokOpname()
     {
         return "Halaman Stok Opname Petugas Apotek (Dalam Pengerjaan)";
-    }
-
-    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN NOTIFIKASI PETUGAS ---
-    public function notifikasiPetugas()
-    {
-        // CONTOH DATA DINAMIS
-        $notifikasiList = [
-            (object)[
-                'jenis' => 'Faktur', 'judul' => 'Faktur Disetujui', 'pesan' => 'Faktur <strong>#INV-092</strong> telah diverifikasi.',
-                'waktu' => 'Baru saja', 'is_read' => false,
-            ],
-            (object)[
-                'jenis' => 'Stok Kritis', 'judul' => 'Stok Kritis', 'pesan' => 'Obat <strong>Amoxicillin 500mg</strong> sisa <strong>5 Strip</strong>.',
-                'waktu' => 'Kemarin, 14:30', 'is_read' => false,
-            ],
-            (object)[
-                'jenis' => 'Info', 'judul' => 'Jadwal Stok Opname', 'pesan' => 'Hari ini adalah jadwal stok opname.',
-                'waktu' => 'Kemarin, 08:00', 'is_read' => true,
-            ]
-        ];
-
-        // MENGOSONGKAN DATA (Sesuai keinginanmu saat ini)
-        // Jadikan komentar baris di bawah ini jika ingin melihat tombol berubah Hijau Full!
-        $notifikasiList = [];
-
-        // LOGIKA PENGECEKAN: Adakah notifikasi yang belum dibaca (is_read == false)?
-        $hasUnread = collect($notifikasiList)->contains('is_read', false);
-
-        return view('petugas.notifikasi', [
-            'title' => 'Pusat Notifikasi',
-            'notifikasiList' => $notifikasiList,
-            'hasUnread' => $hasUnread // Melempar hasil pengecekan ke file Blade
-        ]);
     }
 
     # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL PETUGAS APOTEK ---
@@ -1160,5 +991,70 @@ class DashboardController extends Controller
 
         # 3. Kembalikan ke halaman profil dengan pesan sukses
         return redirect()->route('petugas.profil')->with('success', 'Data profil berhasil diperbarui!');
+    }
+
+    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN NOTIFIKASI GLOBAL ---
+    public function pusatNotifikasi()
+    {
+        # 1. Identifikasi siapa yang sedang login
+        $user = Auth::user();
+
+        $nilaiRole = $user->peran ?? '';
+        $roleRaw = strtolower($nilaiRole);
+
+        if ($roleRaw === 'admin' || $roleRaw === 'administrator' || $roleRaw === '1') {
+            $role = 'admin';
+        } elseif (str_contains($roleRaw, 'kepala') || $roleRaw === '2') {
+            $role = 'kepala';
+        } else {
+            $role = 'petugas';
+        }
+
+        # 2. Tentukan Layout (Sidebar & Navbar) mana yang harus dipakai
+        $layout = 'layouts.' . $role;
+
+        # 3. Ambil data notifikasi ASLI dari database khusus untuk role tersebut
+        $notifikasiList = DB::table('notifikasi')
+            ->where('untuk_role', $role)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        # 4. Cek apakah ada yang belum dibaca untuk mewarnai tombol
+        $hasUnread = $notifikasiList->contains('status_baca', 'Belum');
+
+        # 5. Lempar ke file Blade tunggal
+        return view('shared.notifikasi', [
+            'title' => 'Pusat Notifikasi',
+            'layout' => $layout,
+            'role' => $role,
+            'notifikasiList' => $notifikasiList,
+            'hasUnread' => $hasUnread
+        ]);
+    }
+
+    # --- FUNGSI UNTUK TANDAI SEMUA DIBACA SECARA AMAN ---
+    public function bacaSemuaNotifikasi()
+    {
+        $user = Auth::user();
+
+        # PERBAIKAN: Menggunakan $user->peran agar tidak error
+        $nilaiRole = $user->peran ?? '';
+        $roleRaw = strtolower($nilaiRole);
+
+        if ($roleRaw === 'admin' || $roleRaw === 'administrator' || $roleRaw === '1') {
+            $role = 'admin';
+        } elseif (str_contains($roleRaw, 'kepala') || $roleRaw === '2') {
+            $role = 'kepala';
+        } else {
+            $role = 'petugas';
+        }
+
+        # HANYA update notifikasi milik role yang menekan tombol ini
+        DB::table('notifikasi')
+            ->where('untuk_role', $role)
+            ->where('status_baca', 'Belum')
+            ->update(['status_baca' => 'Sudah']);
+
+        return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
     }
 }

@@ -99,12 +99,30 @@
                     $unreadNotifCount = \App\Models\Notifikasi::where('status_baca', 'Belum')->count();
                 @endphp
 
-                <a href="{{ route('admin.notifikasi') }}"
-                    class="text-on-surface-variant hover:bg-gray-100 p-2 rounded-full relative transition-colors">
-                    <span class="material-symbols-outlined">notifications</span>
+                @php
+                    // --- RADAR MINI: Mendeteksi apakah ada notifikasi baru ---
+                    $roleRaw = strtolower(Auth::user()->peran ?? '');
+                    if ($roleRaw === 'admin' || $roleRaw === 'administrator' || $roleRaw === '1') {
+                        $roleNav = 'admin';
+                    } elseif (str_contains($roleRaw, 'kepala') || $roleRaw === '2') {
+                        $roleNav = 'kepala';
+                    } else {
+                        $roleNav = 'petugas';
+                    }
 
-                    @if ($unreadNotifCount > 0)
-                        <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+                    $adaNotifBaru = \Illuminate\Support\Facades\DB::table('notifikasi')
+                        ->where('untuk_role', $roleNav)
+                        ->where('status_baca', 'Belum')
+                        ->exists(); // exists() jauh lebih ringan dari get(), karena hanya mengecek "ada atau tidak"
+                @endphp
+
+                <a href="{{ route('notifikasi.global') }}"
+                    class="relative text-on-surface hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[24px]">notifications</span>
+
+                    @if ($adaNotifBaru)
+                        <span
+                            class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface"></span>
                     @endif
                 </a>
 
