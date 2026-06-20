@@ -1,113 +1,241 @@
 @extends('layouts.petugas')
 
 @section('content')
-<div class="w-full flex-1 overflow-y-auto p-4 lg:py-6 lg:px-4 bg-gray-50 pb-24">
+    <div class="pb-24">
 
-    @if(session('success'))
-        <div class="mb-4 p-4 bg-teal-50 border-l-4 border-teal-500 text-teal-700 rounded shadow-sm">
-            {{ session('success') }}
-        </div>
-    @endif
+        @if (session('success'))
+            <div class="mb-4 p-4 bg-teal-50 border-l-4 border-teal-500 text-teal-700 rounded shadow-sm">
+                {{ session('success') }}
+            </div>
+        @endif
 
-    <div class="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-            <h2 class="text-2xl font-display font-bold text-gray-800 mb-1">Inventaris & Katalog Obat</h2>
-            <p class="text-gray-500 text-sm">Kelola data master sediaan farmasi dan posisi penyimpanan rak.</p>
-        </div>
-
-        <a href="{{ route('petugas.obat.tambah') }}" class="flex items-center gap-2 bg-teal-600 text-white px-4 py-2.5 rounded-lg hover:bg-teal-700 transition-colors shadow-sm font-medium text-sm whitespace-nowrap self-start sm:self-end">
-            <span class="material-symbols-outlined text-[20px]">add</span> Tambah Obat Baru
-        </a>
-    </div>
-
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
-
-        <form method="GET" action="{{ route('petugas.obat') }}" class="p-4 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row gap-4 items-center justify-between">
-
-            <div class="relative w-full md:w-96 flex">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
-                <input name="search" value="{{ $search }}" class="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="Cari nama obat atau ID..." type="text"/>
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+                <h2 class="text-3xl font-display font-bold text-on-surface mb-2">Inventaris & Katalog Obat</h2>
+                <p class="text-on-surface-variant text-sm">Kelola data master sediaan farmasi dan posisi penyimpanan rak.</p>
             </div>
 
-            <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-                <select name="kategori" onchange="this.form.submit()" class="text-sm bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 min-w-[140px] cursor-pointer">
-                    <option value="">Semua Kategori</option>
-                    @foreach($kategoriList as $kat)
-                        <option value="{{ $kat->id_kategori }}" {{ $kategoriPilihan == $kat->id_kategori ? 'selected' : '' }}>
-                            {{ $kat->nama_kategori }}
-                        </option>
-                    @endforeach
-                </select>
+            <a href="{{ route('petugas.obat.tambah') }}"
+                class="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors shadow-sm font-medium text-sm whitespace-nowrap self-start sm:self-end">
+                <span class="material-symbols-outlined text-[20px] text-white">add</span> Tambah Obat Baru
+            </a>
+        </div>
 
-                <button type="submit" class="hidden">Cari</button>
+        <div
+            class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+
+            <form method="GET" action="{{ route('petugas.obat') }}"
+                class="p-4 border-b border-outline-variant bg-surface-container-low flex flex-col md:flex-row gap-4 items-center justify-between">
+
+                <div class="relative w-full md:w-96 flex">
+                    <span
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                    <input name="search" value="{{ $search }}"
+                        class="w-full pl-9 pr-4 py-2 text-sm bg-surface-container-lowest border border-outline-variant text-on-surface placeholder:text-on-surface-variant/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Cari nama obat atau ID..." type="text" />
+                </div>
+
+                <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+
+                    <div class="relative">
+                        <select name="kategori" onchange="this.form.submit()"
+                            class="text-sm bg-surface-container-lowest border border-outline-variant rounded-lg pl-3 pr-10 py-2 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-w-[140px] cursor-pointer appearance-none bg-none shadow-sm">
+                            <option value="">Semua Kategori</option>
+                            @foreach ($kategoriList as $kat)
+                                <option value="{{ $kat->id_kategori }}"
+                                    {{ $kategoriPilihan == $kat->id_kategori ? 'selected' : '' }}>
+                                    {{ $kat->nama_kategori }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[20px]">expand_more</span>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <select name="rak"
+                            class="text-sm bg-surface-container-lowest border border-outline-variant rounded-lg pl-3 pr-10 py-2 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-w-[140px] cursor-pointer appearance-none bg-none shadow-sm">
+                            <option value="">Semua Rak</option>
+                            <option value="A">Rak A</option>
+                            <option value="B">Rak B</option>
+                            <option value="C">Rak C</option>
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[20px]">expand_more</span>
+                        </div>
+                    </div>
+
+                    <button type="button"
+                        class="p-2 border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors flex items-center justify-center bg-surface-container-lowest shadow-sm">
+                        <span class="material-symbols-outlined text-[20px]">filter_list</span>
+                    </button>
+
+                    <button type="submit" class="hidden">Cari</button>
+                </div>
+            </form>
+
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr
+                            class="bg-surface-container-low border-b border-outline-variant text-on-surface-variant text-xs uppercase tracking-wider font-bold">
+                            <th class="p-4 py-3">ID Obat</th>
+                            <th class="p-4 py-3">Nama Obat</th>
+                            <th class="p-4 py-3">Kategori</th>
+                            <th class="p-4 py-3">Letak Rak</th>
+                            <th class="p-4 py-3 text-right">Stok Total</th>
+                            <th class="p-4 py-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant text-sm text-on-surface">
+
+                        @forelse($obatList as $obat)
+                            @php $isKritis = $obat->total_stok <= $obat->batas_stok_min; @endphp
+
+                            <tr
+                                class="hover:bg-surface-container transition-colors group {{ $isKritis ? 'bg-error-container/30' : '' }}">
+                                <td class="p-4 whitespace-nowrap font-mono text-on-surface-variant text-xs">
+                                    {{ $obat->id_obat }}</td>
+                                <td class="p-4">
+                                    <div class="font-bold text-on-surface">{{ $obat->nama_obat }}
+                                        {{ $obat->dosis }}{{ $obat->satuan_dosis }}</div>
+                                    <div class="text-xs text-on-surface-variant">{{ $obat->bentuk_sediaan }}</div>
+                                </td>
+                                <td class="p-4 whitespace-nowrap">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-surface-container-highest text-on-surface-variant border border-outline-variant">
+                                        {{ $obat->nama_kategori }}
+                                    </span>
+                                </td>
+                                <td class="p-4 whitespace-nowrap text-on-surface-variant font-medium">
+                                    {{ $obat->letak_rak }}</td>
+
+                                <td
+                                    class="p-4 whitespace-nowrap text-right font-bold text-lg {{ $isKritis ? 'text-error' : 'text-on-surface' }}">
+                                    {{ $obat->total_stok }}
+                                    <span
+                                        class="text-xs font-normal text-on-surface-variant ml-1">{{ $obat->bentuk_sediaan }}</span>
+                                </td>
+
+                                <td class="p-4 whitespace-nowrap text-center">
+                                    <div class="flex items-center justify-center gap-2">
+
+                                        <a href="{{ route('petugas.obat.edit', $obat->id_obat) }}"
+                                            class="p-1.5 text-outline hover:text-primary hover:bg-primary-container/20 rounded-md transition-colors"
+                                            title="Edit Data">
+                                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                                        </a>
+
+                                        <!-- Tombol Hapus memanggil fungsi JS -->
+                                        <button type="button"
+                                            onclick="openDeleteModal('{{ $obat->id_obat }}', '{{ $obat->nama_obat }}')"
+                                            class="p-1.5 text-outline hover:text-error hover:bg-error-container/50 rounded-md transition-colors"
+                                            title="Hapus Data">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="p-8 text-center text-on-surface-variant">
+                                    Tidak ada data obat yang ditemukan.
+                                </td>
+                            </tr>
+                        @endforelse
+
+                    </tbody>
+                </table>
             </div>
-        </form>
 
-        <div class="overflow-x-auto flex-1">
-            <table class="w-full text-left border-collapse min-w-[800px]">
-                <thead>
-                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider font-bold">
-                        <th class="p-4 py-3">ID Obat</th>
-                        <th class="p-4 py-3">Nama Obat</th>
-                        <th class="p-4 py-3">Kategori</th>
-                        <th class="p-4 py-3">Letak Rak</th>
-                        <th class="p-4 py-3 text-right">Stok Total</th>
-                        <th class="p-4 py-3 text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+            <div class="p-4 border-t border-outline-variant bg-surface-container-low">
+                {{ $obatList->appends(request()->query())->links() }}
+            </div>
 
-                    @forelse($obatList as $obat)
-                        @php $isKritis = $obat->total_stok <= $obat->batas_stok_min; @endphp
-
-                        <tr class="hover:bg-gray-50 transition-colors group {{ $isKritis ? 'bg-red-50' : '' }}">
-                            <td class="p-4 whitespace-nowrap font-mono text-gray-500 text-xs">{{ $obat->id_obat }}</td>
-                            <td class="p-4">
-                                <div class="font-bold text-gray-800">{{ $obat->nama_obat }} {{ $obat->dosis }}{{ $obat->satuan_dosis }}</div>
-                                <div class="text-xs text-gray-500">{{ $obat->bentuk_sediaan }}</div>
-                            </td>
-                            <td class="p-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                                    {{ $obat->nama_kategori }}
-                                </span>
-                            </td>
-                            <td class="p-4 whitespace-nowrap text-gray-500 font-medium">{{ $obat->letak_rak }}</td>
-
-                            <td class="p-4 whitespace-nowrap text-right font-bold text-lg {{ $isKritis ? 'text-red-600' : 'text-gray-800' }}">
-                                {{ $obat->total_stok }}
-                                <span class="text-xs font-normal text-gray-500 ml-1">{{ $obat->bentuk_sediaan }}</span>
-                            </td>
-
-                            <td class="p-4 whitespace-nowrap text-center">
-                                <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-
-                                    <a href="{{ route('petugas.obat.edit', $obat->id_obat) }}" class="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="Edit Data">
-                                        <span class="material-symbols-outlined text-[18px]">edit</span>
-                                    </a>
-
-                                    <button type="button" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Data">
-                                        <span class="material-symbols-outlined text-[18px]">delete</span>
-                                    </button>
-
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="p-8 text-center text-gray-500">
-                                Tidak ada data obat yang ditemukan.
-                            </td>
-                        </tr>
-                    @endforelse
-
-                </tbody>
-            </table>
         </div>
-
-        <div class="p-4 border-t border-gray-200 bg-gray-50">
-            {{ $obatList->appends(request()->query())->links() }}
-        </div>
-
     </div>
-</div>
+
+    <!-- CUSTOM MODAL HAPUS (Hidden by default) -->
+    <div id="deleteModal"
+        class="fixed inset-0 z-50 hidden bg-on-surface/40 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
+        <div id="deleteModalContent"
+            class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-300">
+            <div class="p-6 text-center">
+                <!-- Ikon Warning Merah -->
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-error-container mb-5">
+                    <span class="material-symbols-outlined text-[32px] text-error"
+                        style="font-variation-settings: 'FILL' 1;">warning</span>
+                </div>
+
+                <h3 class="text-xl font-bold text-on-surface mb-2">Hapus Obat?</h3>
+                <p class="text-sm text-on-surface-variant mb-6">
+                    Apakah Anda yakin ingin menghapus <strong id="deleteObjectName" class="text-on-surface"></strong> dari
+                    katalog? Tindakan ini tidak dapat dibatalkan.
+                </p>
+
+                <!-- Tombol Aksi Modal -->
+                <div class="flex gap-3 justify-center">
+                    <button type="button" onclick="closeDeleteModal()"
+                        class="flex-1 px-4 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-semibold text-sm">
+                        Batal
+                    </button>
+                    <!-- Form eksekusi hapus sesungguhnya -->
+                    <form id="deleteForm" method="POST" action="" class="flex-1">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                            class="w-full px-4 py-2.5 rounded-lg bg-error text-on-error hover:bg-error/90 transition-colors font-semibold text-sm">
+                            Ya, Hapus
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT UNTUK MENGENDALIKAN MODAL -->
+    <script>
+        function openDeleteModal(idObat, namaObat) {
+            const modal = document.getElementById('deleteModal');
+            const modalContent = document.getElementById('deleteModalContent');
+            const deleteForm = document.getElementById('deleteForm');
+            const deleteObjectName = document.getElementById('deleteObjectName');
+
+            // 1. Ganti nama obat di dalam teks modal
+            deleteObjectName.textContent = namaObat;
+
+            // 2. Set action URL pada form secara dinamis menggunakan ID yang dipilih
+            // Kita generate base url dari Laravel lalu me-replace kata kunci dengan ID asli
+            let baseUrl = "{{ route('petugas.obat.hapus', ':id') }}";
+            deleteForm.action = baseUrl.replace(':id', idObat);
+
+            // 3. Tampilkan modal dengan animasi fade in & scale up
+            modal.classList.remove('hidden');
+            // Sedikit delay (setTimeout 10ms) agar transisi CSS terbaca oleh browser
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            const modalContent = document.getElementById('deleteModalContent');
+
+            // 1. Jalankan animasi fade out & scale down
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+
+            // 2. Sembunyikan div sepenuhnya setelah animasi selesai (300ms)
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+    </script>
 @endsection

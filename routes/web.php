@@ -161,8 +161,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/obat/simpan', [DashboardController::class, 'simpanObat'])->name('obat.simpan');
 
         Route::get('/obat/edit/{id}', [DashboardController::class, 'editObat'])->name('obat.edit');
-        # ...
-        # -----------------------------
+        Route::put('/obat/update/{id}', [DashboardController::class, 'updateObat'])->name('obat.update');
+        Route::delete('/obat/hapus/{id}', [DashboardController::class, 'hapusObat'])->name('obat.hapus');
 
         Route::get('/masuk', [DashboardController::class, 'obatMasuk'])->name('masuk');
         Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
