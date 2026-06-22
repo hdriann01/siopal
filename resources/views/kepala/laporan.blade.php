@@ -12,10 +12,12 @@
                     class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
                     <span class="material-symbols-outlined text-sm">print</span> Cetak Laporan
                 </button>
-                <button
-                    class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors font-medium text-sm shadow-sm">
-                    <span class="material-symbols-outlined text-sm">download</span> Ekspor Excel
-                </button>
+                <!-- Menggunakan fungsi url() agar terbebas dari masalah nama Route -->
+                <a href="{{ url('/export-excel-laporan') }}"
+                    class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-2.5 px-5 rounded-lg transition-colors text-sm shadow-sm">
+                    <span class="material-symbols-outlined text-[20px]">download</span>
+                    Export Excel
+                </a>
             </div>
         </div>
 

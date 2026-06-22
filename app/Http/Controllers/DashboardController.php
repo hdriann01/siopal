@@ -344,46 +344,15 @@ class DashboardController extends Controller
         return back()->with('success', 'Pengaturan sistem berhasil diperbarui!');
     }
 
-    # --- FUNGSI UNTUK MENGEDIT PROFIL DIRI SENDIRI ---
+    # --- Fungsi Profil Admin ---
     public function profil()
     {
-        # Ambil data diri akun yang sedang login saat ini
-        $user = Auth::user();
-
-        return view('admin.profil', [
+        return view('shared.profil', [
             'title' => 'Profil Saya',
-            'user' => $user
+            'user' => Auth::user(),
+            'layout' => 'layouts.admin',
+            'actionUrl' => url('/simpan-profil-global') # Menggunakan URL absolut agar bebas error rute
         ]);
-    }
-
-    # --- FUNGSI UNTUK MENYIMPAN PROFIL DIRI SENDIRI ---
-    public function updateProfil(Request $request)
-    {
-        $user = Auth::user();
-
-        # Validasi seperti biasa, abaikan nama unik jika itu miliknya sendiri
-        $request->validate([
-            'nama_lengkap' => 'required|string|max:100',
-            'username'     => 'required|string|max:50|unique:pengguna,username,' . $user->id_pengguna . ',id_pengguna',
-        ]);
-
-        # Cari tabel pengguna berdasarkan ID dirinya, lalu perbarui teksnya
-        $userModel = Pengguna::findOrFail($user->id_pengguna);
-        $userModel->update([
-            'nama_lengkap' => $request->nama_lengkap,
-            'username'     => $request->username,
-        ]);
-
-        # Catat aktivitas bahwa dia baru saja mengubah datanya sendiri
-        LogAudit::create([
-            'id_pengguna' => $user->id_pengguna,
-            'aktivitas'   => 'Memperbarui data profil pribadi',
-            'alamat_ip'   => $request->ip(),
-            'status'      => 'Success',
-            'created_at'  => now(),
-        ]);
-
-        return back()->with('success', 'Profil Anda berhasil diperbarui!');
     }
 
     # --- FUNGSI UNTUK MENGHASILKAN PDF DARI LOG AUDIT ---
@@ -582,7 +551,24 @@ class DashboardController extends Controller
                 'status'      => 'Success',
                 'created_at'  => now(),
             ]);
-        });
+
+            # --- TAMBAHKAN KODE INI (D. Kirim Notifikasi Balasan ke Petugas) ---
+            $judulNotif = ($statusBaru == 'Disetujui') ? 'Faktur Disetujui' : 'Faktur Ditolak';
+            $pesanNotif = ($statusBaru == 'Disetujui')
+                ? 'Faktur <strong>' . $faktur->no_faktur . '</strong> telah diverifikasi. Stok otomatis bertambah ke dalam inventaris.'
+                : 'Pengajuan faktur <strong>' . $faktur->no_faktur . '</strong> dikembalikan. Silakan periksa kembali kecocokan fisik barang dengan nota cetak.';
+
+            DB::table('notifikasi')->insert([
+                'untuk_role'  => 'petugas',
+                'tipe'        => 'Faktur',
+                'judul'       => $judulNotif,
+                'pesan'       => $pesanNotif,
+                'status_baca' => 'Belum',
+                'created_at'  => now(),
+            ]);
+            # -------------------------------------------------------------------
+
+        }); # <-- Ini adalah penutup DB::transaction
 
         # 4. Kembalikan Kepala Apotek ke halaman daftar verifikasi dengan pesan sukses
         $pesanNotif = ($statusBaru == 'Disetujui')
@@ -740,49 +726,16 @@ class DashboardController extends Controller
     }
 
 
-    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL KEPALA APOTEK ---
+    # --- Fungsi Profil Kepala Apotek ---
     public function profilKepala()
     {
-        # Ambil data pengguna yang sedang login saat ini
-        $user = Auth::user();
-
-        return view('kepala.profil', [
+        return view('shared.profil', [
             'title' => 'Profil Saya',
-            'user' => $user
+            'user' => Auth::user(),
+            'layout' => 'layouts.kepala',
+            'actionUrl' => url('/simpan-profil-global')
         ]);
     }
-
-    # --- FUNGSI UNTUK MENYIMPAN PEMBARUAN PROFIL KEPALA APOTEK ---
-    public function updateProfilKepala(Request $request)
-    {
-        $user = Auth::user();
-
-        # Validasi inputan (Nama wajib ada, username harus unik kecuali miliknya sendiri)
-        $request->validate([
-            'nama_lengkap' => 'required|string|max:100',
-            'username'     => 'required|string|max:50|unique:pengguna,username,' . $user->id_pengguna . ',id_pengguna',
-        ]);
-
-        # Perbarui data di database
-        $userModel = Pengguna::findOrFail($user->id_pengguna);
-        $userModel->update([
-            'nama_lengkap' => $request->nama_lengkap,
-            'username'     => $request->username,
-        ]);
-
-        # Catat aktivitas ini ke Log Audit
-        LogAudit::create([
-            'id_pengguna' => $user->id_pengguna,
-            'aktivitas'   => 'Memperbarui data profil pribadi',
-            'alamat_ip'   => $request->ip(),
-            'status'      => 'Success',
-            'created_at'  => now(),
-        ]);
-
-        # Pastikan route() ini mengarah ke nama rute yang benar-benar ada di web.php
-        return redirect()->route('kepala.profil')->with('success', 'Profil Anda berhasil diperbarui!');
-    }
-
 
     # =====================================================================
     # BAGIAN 4: FUNGSI-FUNGSI KHUSUS PETUGAS APOTEK
@@ -803,28 +756,50 @@ class DashboardController extends Controller
             ->whereDate('tgl_kadaluwarsa', '<=', $enamBulanKeDepan)
             ->count();
 
-        # 4. Menyusun tabel Riwayat Aktivitas Stok Terbaru
-        # Mengambil 5 aktivitas OBAT MASUK terakhir. (Kita gabungkan tabel obat_masuk, detail_masuk, dan obat untuk mendapat namanya)
+        # 1. Mengambil 5 aktivitas OBAT MASUK terakhir
         $masuk = DB::table('obat_masuk')
             ->join('detail_masuk', 'obat_masuk.id_masuk', '=', 'detail_masuk.id_masuk')
             ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
             ->select('obat_masuk.tanggal_masuk as tanggal', 'obat.nama_obat', 'detail_masuk.jumlah_masuk as jumlah', DB::raw("'Masuk' as tipe"))
-            ->orderBy('tanggal', 'desc')
+            ->where('obat_masuk.status_verifikasi', 'Disetujui')
+            ->orderBy('obat_masuk.tanggal_masuk', 'desc')
             ->limit(5)
             ->get();
 
-        # Mengambil 5 aktivitas OBAT KELUAR terakhir
+        # 2. Mengambil 5 aktivitas OBAT KELUAR terakhir
         $keluar = DB::table('obat_keluar')
             ->join('detail_keluar', 'obat_keluar.id_keluar', '=', 'detail_keluar.id_keluar')
             ->join('obat', 'detail_keluar.id_obat', '=', 'obat.id_obat')
             ->select('obat_keluar.tanggal_keluar as tanggal', 'obat.nama_obat', 'detail_keluar.jumlah_keluar as jumlah', DB::raw("'Keluar' as tipe"))
-            ->orderBy('tanggal', 'desc')
+            ->where('obat_keluar.status_otorisasi', 'Disetujui')
+            ->orderBy('obat_keluar.tanggal_keluar', 'desc')
             ->limit(5)
             ->get();
 
-        # Menggabungkan koleksi data 'Masuk' dan 'Keluar' tadi menjadi satu tabel,
-        # mengurutkan semuanya berdasarkan tanggal terbaru, lalu memotongnya hanya menjadi 5 baris teratas saja
-        $aktivitasTerbaru = $masuk->concat($keluar)->sortByDesc('tanggal')->take(5);
+        # 3. Mengambil 5 aktivitas STOK OPNAME dari Log Audit
+        $opname = DB::table('log_audit')
+            ->select('created_at as tanggal', 'aktivitas')
+            ->where('aktivitas', 'like', 'Stok Opname: Sinkronisasi%')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($item) {
+                # Membongkar teks log (Contoh: "...Sinkronisasi Paracetamol dari 50 menjadi 45 (Selisih: -5)...")
+                preg_match('/Sinkronisasi (.*?) dari \d+ menjadi \d+ \(Selisih: ([-\d]+)\)/', $item->aktivitas, $matches);
+
+                $nama_obat = $matches[1] ?? 'Penyesuaian Stok (Opname)';
+                $selisih = (int) ($matches[2] ?? 0);
+
+                return (object) [
+                    'tanggal'   => $item->tanggal,
+                    'nama_obat' => $nama_obat,
+                    'jumlah'    => abs($selisih), # Ambil angka absolut (menghilangkan tanda minus jika ada)
+                    'tipe'      => $selisih > 0 ? 'Opname (+)' : 'Opname (-)',
+                ];
+            });
+
+        # 4. Gabungkan ketiga sumber data dan urutkan berdasarkan waktu paling baru
+        $aktivitasTerbaru = $masuk->concat($keluar)->concat($opname)->sortByDesc('tanggal')->take(5);
 
         # Tampilkan dashboard petugas beserta datanya
         return view('petugas.dashboard', [
@@ -833,6 +808,40 @@ class DashboardController extends Controller
             'stokMenipis' => $stokMenipis,
             'akanKedaluwarsa' => $akanKedaluwarsa,
             'aktivitasTerbaru' => $aktivitasTerbaru
+        ]);
+    }
+
+    # --- FUNGSI HALAMAN PERINGATAN STOK MENIPIS ---
+    public function stokMenipis()
+    {
+        $stokMenipis = DB::table('obat')
+            ->whereRaw('total_stok <= batas_stok_min')
+            ->orderBy('total_stok', 'asc')
+            ->get();
+
+        return view('petugas.stok-menipis', [
+            'title' => 'Peringatan Stok Menipis',
+            'stokMenipis' => $stokMenipis,
+        ]);
+    }
+
+    # --- FUNGSI HALAMAN PERINGATAN OBAT KEDALUWARSA ---
+    public function obatKedaluwarsa()
+    {
+        $tigaBulanKeDepan = \Carbon\Carbon::now()->addMonths(3)->format('Y-m-d');
+        $hariIni = \Carbon\Carbon::now()->format('Y-m-d');
+
+        $akanKedaluwarsa = DB::table('detail_masuk')
+            ->join('obat', 'detail_masuk.id_obat', '=', 'obat.id_obat')
+            ->select('detail_masuk.*', 'obat.nama_obat', 'obat.satuan_dosis', 'obat.bentuk_sediaan')
+            ->whereDate('detail_masuk.tgl_kadaluwarsa', '<=', $tigaBulanKeDepan)
+            ->orderBy('detail_masuk.tgl_kadaluwarsa', 'asc')
+            ->get();
+
+        return view('petugas.obat-kedaluwarsa', [
+            'title' => 'Peringatan Obat Kedaluwarsa',
+            'akanKedaluwarsa' => $akanKedaluwarsa,
+            'hariIni' => $hariIni
         ]);
     }
 
@@ -878,26 +887,266 @@ class DashboardController extends Controller
 
     public function obatMasuk()
     {
-        return "Halaman Transaksi Obat Masuk Petugas Apotek (Dalam Pengerjaan)";
+        # Ambil daftar obat dari database, urutkan berdasarkan abjad
+        $obatList = DB::table('obat')->orderBy('nama_obat', 'asc')->get();
+
+        return view('petugas.obat-masuk', [
+            'title' => 'Catat Obat Masuk',
+            'obatList' => $obatList
+        ]);
+    }
+
+    # --- FUNGSI UNTUK MENYIMPAN TRANSAKSI OBAT MASUK (DRAF) ---
+    public function simpanObatMasuk(Request $request)
+    {
+        # 1. Validasi Input Dasar
+        $request->validate([
+            'no_faktur'     => 'required|string|max:100',
+            'nama_supplier' => 'required|string|max:100',
+            'tanggal_masuk' => 'required|date',
+            'items'         => 'required|array|min:1', # Memastikan keranjang obat tidak kosong
+        ]);
+
+        # 2. Proses menggunakan Database Transaction agar aman
+        # Jika tiba-tiba mati lampu saat menyimpan rincian, tabel utama tidak akan jadi "sampah"
+        DB::transaction(function () use ($request) {
+
+            # A. Membuat ID Masuk Otomatis (Contoh: INVM-001)
+            $lastFaktur = DB::table('obat_masuk')->orderBy('id_masuk', 'desc')->first();
+            $newIdMasuk = 'INVM-001';
+            if ($lastFaktur) {
+                # Mengambil 3 digit angka terakhir, lalu ditambah 1
+                $lastNumber = (int) substr($lastFaktur->id_masuk, 5);
+                $newIdMasuk = 'INVM-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            }
+
+            # B. Simpan Header ke tabel `obat_masuk`
+            DB::table('obat_masuk')->insert([
+                'id_masuk'          => $newIdMasuk,
+                'no_faktur'         => $request->no_faktur,
+                'nama_supplier'     => $request->nama_supplier,
+                'tanggal_masuk'     => $request->tanggal_masuk,
+                'id_pengguna'       => Auth::user()->id_pengguna, # Mencatat ID Petugas yang menginput
+                'status_verifikasi' => 'Draft' # Otomatis berstatus Draf untuk menunggu verifikasi Kepala Apotek
+
+                # BARIS 'created_at' => now() TELAH DIHAPUS DARI SINI
+            ]);
+
+            # C. Simpan rincian keranjang (Array) ke tabel `detail_masuk` secara massal
+            $detailData = [];
+            foreach ($request->items as $item) {
+                $detailData[] = [
+                    'id_masuk'        => $newIdMasuk,
+                    'id_obat'         => $item['id_obat'],
+                    'jumlah_masuk'    => $item['jumlah_masuk'],
+                    'tgl_kadaluwarsa' => $item['tgl_kadaluwarsa'],
+                    'nomor_batch'     => $item['nomor_batch'],
+                ];
+            }
+            DB::table('detail_masuk')->insert($detailData);
+
+            # D. Kirim Notifikasi Sistem otomatis ke Kepala Apotek
+            DB::table('notifikasi')->insert([
+                'untuk_role'  => 'kepala',
+                'tipe'        => 'Faktur',
+                'judul'       => 'Verifikasi Faktur Baru',
+                'pesan'       => 'Terdapat draf faktur masuk <strong>' . $request->no_faktur . '</strong> yang menunggu persetujuan Anda.',
+                'status_baca' => 'Belum',
+                'created_at'  => now(),
+            ]);
+
+            # E. Catat aktivitas ini ke Log Audit
+            LogAudit::create([
+                'id_pengguna' => Auth::user()->id_pengguna,
+                'aktivitas'   => "Menginput draf faktur masuk baru No: " . $request->no_faktur,
+                'alamat_ip'   => request()->ip(),
+                'status'      => 'Success',
+                'created_at'  => now(),
+            ]);
+        });
+
+        # 3. Kembalikan ke halaman form dengan pesan sukses
+        return back()->with('success', 'Faktur berhasil disimpan sebagai Draf dan telah dikirim ke Kepala Apotek untuk diverifikasi!');
     }
 
     public function obatKeluar()
     {
-        return "Halaman Transaksi Obat Keluar Petugas Apotek (Dalam Pengerjaan)";
+        # Ambil daftar obat yang stoknya > 0 beserta Rekomendasi Nomor Batch (Sistem FEFO)
+        $obatList = DB::table('obat')
+            ->select('obat.*', DB::raw('(SELECT nomor_batch FROM detail_masuk WHERE detail_masuk.id_obat = obat.id_obat ORDER BY tgl_kadaluwarsa ASC LIMIT 1) as batch_rekomendasi'))
+            ->where('total_stok', '>', 0)
+            ->orderBy('nama_obat', 'asc')
+            ->get();
+
+        return view('petugas.obat-keluar', [
+            'title' => 'Catat Obat Keluar',
+            'obatList' => $obatList
+        ]);
     }
 
-    public function stokOpname()
+    # --- FUNGSI UNTUK MENYIMPAN TRANSAKSI OBAT KELUAR ---
+    public function simpanObatKeluar(Request $request)
     {
-        return "Halaman Stok Opname Petugas Apotek (Dalam Pengerjaan)";
+        $request->validate([
+            'tujuan_pengeluaran' => 'required|string|max:150',
+            'referensi'          => 'nullable|string|max:100',
+            'tanggal_keluar'     => 'required|date',
+            'items'              => 'required|array|min:1',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            # 1. Buat ID Keluar Otomatis (Contoh: OUTM-001)
+            $lastFaktur = DB::table('obat_keluar')->orderBy('id_keluar', 'desc')->first();
+            $newIdKeluar = 'OUTM-001';
+            if ($lastFaktur) {
+                $lastNumber = (int) substr($lastFaktur->id_keluar, 5);
+                $newIdKeluar = 'OUTM-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            }
+
+            # 2. Simpan Header ke tabel `obat_keluar`
+            DB::table('obat_keluar')->insert([
+                'id_keluar'          => $newIdKeluar,
+                'tanggal_keluar'     => $request->tanggal_keluar,
+                'tujuan_pengeluaran' => $request->tujuan_pengeluaran,
+                'id_pengguna'        => Auth::user()->id_pengguna,
+                # Jika tujuannya Pemusnahan, butuh otorisasi Kepala Apotek. Jika Pasien/Resep, langsung Disetujui.
+                'status_otorisasi'   => str_contains(strtolower($request->tujuan_pengeluaran), 'musnah') ? 'Menunggu' : 'Disetujui',
+            ]);
+
+            # 3. Simpan rincian ke `detail_keluar` & Kurangi stok (jika bukan pemusnahan)
+            $detailData = [];
+            foreach ($request->items as $item) {
+                $detailData[] = [
+                    'id_keluar'     => $newIdKeluar,
+                    'id_obat'       => $item['id_obat'],
+                    'jumlah_keluar' => $item['jumlah_keluar'],
+                ];
+
+                # Langsung potong stok jika ini pengeluaran resep biasa
+                if (!str_contains(strtolower($request->tujuan_pengeluaran), 'musnah')) {
+                    DB::table('obat')
+                        ->where('id_obat', $item['id_obat'])
+                        ->decrement('total_stok', $item['jumlah_keluar']);
+                }
+            }
+            DB::table('detail_keluar')->insert($detailData);
+
+            # 4. Kirim Notifikasi ke Kepala Apotek (Hanya jika butuh otorisasi pemusnahan)
+            if (str_contains(strtolower($request->tujuan_pengeluaran), 'musnah')) {
+                DB::table('notifikasi')->insert([
+                    'untuk_role'  => 'kepala',
+                    'tipe'        => 'Faktur',
+                    'judul'       => 'Otorisasi Pemusnahan Obat',
+                    'pesan'       => 'Terdapat pengajuan pemusnahan obat <strong>' . $newIdKeluar . '</strong> yang menunggu otorisasi Anda.',
+                    'status_baca' => 'Belum',
+                    'created_at'  => now(),
+                ]);
+            }
+
+            # 5. Catat Log Audit
+            LogAudit::create([
+                'id_pengguna' => Auth::user()->id_pengguna,
+                'aktivitas'   => "Mencatat obat keluar No: " . $newIdKeluar . " (" . $request->tujuan_pengeluaran . ")",
+                'alamat_ip'   => request()->ip(),
+                'status'      => 'Success',
+                'created_at'  => now(),
+            ]);
+        });
+
+        return redirect()->route('petugas.dashboard')->with('success', 'Transaksi pengeluaran obat berhasil dicatat!');
     }
 
-    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN PROFIL PETUGAS APOTEK ---
+    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN STOK OPNAME ---
+    # --- FUNGSI UNTUK MENAMPILKAN HALAMAN STOK OPNAME ---
+    public function stokOpname(Request $request)
+    {
+        # 1. Tangkap filter rak jika petugas memilih dari dropdown
+        $rakPilihan = $request->query('rak');
+
+        # 2. Ambil semua letak rak yang unik dari database untuk mengisi pilihan dropdown
+        $rakList = DB::table('obat')->select('letak_rak')->whereNotNull('letak_rak')->where('letak_rak', '!=', '')->distinct()->pluck('letak_rak');
+
+        # 3. Tarik data obat, filter jika rak dipilih
+        $query = DB::table('obat')->orderBy('nama_obat', 'asc');
+        if ($rakPilihan) {
+            $query->where('letak_rak', $rakPilihan);
+        }
+        $obatList = $query->get();
+
+        return view('petugas.stok-opname', [
+            'title' => 'Audit Stok Opname',
+            'obatList' => $obatList,
+            'rakList' => $rakList,
+            'rakPilihan' => $rakPilihan
+        ]);
+    }
+
+    # --- FUNGSI UNTUK MENYIMPAN HASIL AUDIT STOK OPNAME ---
+    public function simpanStokOpname(Request $request)
+    {
+        $request->validate([
+            'items' => 'required|array',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            $jumlahPerubahan = 0;
+
+            # Lakukan perulangan untuk mengecek satu per satu obat yang dikirim
+            foreach ($request->items as $id_obat => $data) {
+
+                # Abaikan jika kolom Stok Fisik tidak diisi oleh petugas
+                if (!isset($data['stok_fisik']) || $data['stok_fisik'] === '') {
+                    continue;
+                }
+
+                $stokFisik = (int) $data['stok_fisik'];
+                $obat = DB::table('obat')->where('id_obat', $id_obat)->first();
+
+                # Jika ada selisih antara fisik dan sistem
+                if ($obat && $obat->total_stok != $stokFisik) {
+                    $selisih = $stokFisik - $obat->total_stok;
+                    $keterangan = $data['keterangan'] ?? 'Tanpa keterangan';
+
+                    # 1. Update stok utama di sistem menjadi sama dengan fisik
+                    DB::table('obat')->where('id_obat', $id_obat)->update([
+                        'total_stok' => $stokFisik
+                    ]);
+
+                    # 2. Catat penyesuaian ini ke Log Audit
+                    LogAudit::create([
+                        'id_pengguna' => Auth::user()->id_pengguna,
+                        'aktivitas'   => "Stok Opname: Sinkronisasi " . $obat->nama_obat . " dari " . $obat->total_stok . " menjadi " . $stokFisik . " (Selisih: " . $selisih . "). Ket: " . $keterangan,
+                        'alamat_ip'   => request()->ip(),
+                        'status'      => 'Success',
+                        'created_at'  => now(),
+                    ]);
+
+                    $jumlahPerubahan++;
+                }
+            }
+
+            # Jika tidak ada perubahan sama sekali, simpan pesan khusus ke flash data
+            if ($jumlahPerubahan == 0) {
+                session()->flash('info', 'Tidak ada selisih yang ditemukan. Stok sistem sudah sesuai dengan fisik.');
+            }
+        });
+
+        # Kembalikan ke Dashboard dengan pesan sukses
+        if (session()->has('info')) {
+            return redirect()->route('petugas.dashboard'); // Info ditangani di dashboard jika ada alert khusus
+        }
+
+        return redirect()->route('petugas.dashboard')->with('success', 'Audit Stok Opname selesai! Data stok telah disinkronkan dengan fisik.');
+    }
+
+    # --- Fungsi Profil Petugas Apotek ---
     public function profilPetugas()
     {
-        return view('petugas.profil', [
+        return view('shared.profil', [
             'title' => 'Profil Saya',
-            // Memanggil data pengguna yang sedang login saat ini
-            'user' => Auth::user()
+            'user' => Auth::user(),
+            'layout' => 'layouts.petugas',
+            'actionUrl' => url('/simpan-profil-global')
         ]);
     }
 
@@ -961,9 +1210,63 @@ class DashboardController extends Controller
         return redirect()->route('petugas.obat')->with('success', 'Obat baru berhasil ditambahkan ke katalog!');
     }
 
+    # --- FUNGSI UNTUK MENAMPILKAN FORM EDIT (DENGAN DATA LAMA) ---
     public function editObat(string $id)
     {
-        return "Halaman Form Edit Obat untuk ID: " . $id . " (Dalam Pengerjaan)";
+        # Ambil data obat spesifik berdasarkan ID
+        $obat = DB::table('obat')->where('id_obat', $id)->first();
+
+        # Jika ada orang iseng mengetik ID sembarangan di URL, kembalikan ke katalog
+        if (!$obat) {
+            return redirect()->route('petugas.obat')->withErrors('Data obat tidak ditemukan.');
+        }
+
+        # Ambil daftar kategori untuk dropdown
+        $kategoriList = DB::table('kategori')->orderBy('nama_kategori', 'asc')->get();
+
+        return view('petugas.edit-obat', [
+            'title' => 'Edit Data Obat',
+            'obat' => $obat,
+            'kategoriList' => $kategoriList
+        ]);
+    }
+
+    # --- FUNGSI UNTUK MENYIMPAN PERUBAHAN KE DATABASE ---
+    public function updateObat(Request $request, string $id)
+    {
+        # 1. Validasi inputan form
+        $request->validate([
+            'nama_obat' => 'required|string|max:100',
+            'id_kategori' => 'required|string',
+            'dosis' => 'required|numeric',
+            'satuan_dosis' => 'required|string',
+            'bentuk_sediaan' => 'required|string',
+            'letak_rak' => 'nullable|string|max:50',
+            'batas_stok_min' => 'required|integer|min:0',
+        ]);
+
+        # 2. Perbarui data di dalam tabel 'obat'
+        DB::table('obat')->where('id_obat', $id)->update([
+            'id_kategori' => $request->id_kategori,
+            'nama_obat' => $request->nama_obat,
+            'dosis' => $request->dosis,
+            'satuan_dosis' => $request->satuan_dosis,
+            'bentuk_sediaan' => $request->bentuk_sediaan,
+            'letak_rak' => $request->letak_rak,
+            'batas_stok_min' => $request->batas_stok_min,
+        ]);
+
+        # 3. Catat aktivitas ini ke Log Audit
+        LogAudit::create([
+            'id_pengguna' => Auth::user()->id_pengguna,
+            'aktivitas'   => "Memperbarui data master obat: " . $request->nama_obat . " (ID: " . $id . ")",
+            'alamat_ip'   => request()->ip(),
+            'status'      => 'Success',
+            'created_at'  => now(),
+        ]);
+
+        # 4. Kembalikan ke halaman katalog dengan pesan sukses
+        return redirect()->route('petugas.obat')->with('success', 'Data obat berhasil diperbarui!');
     }
 
     # --- FUNGSI UNTUK MENGHAPUS OBAT DARI KATALOG ---
@@ -995,38 +1298,10 @@ class DashboardController extends Controller
 
             # 4. Kembalikan ke halaman sebelumnya dengan pesan sukses warna hijau
             return back()->with('success', 'Data obat "' . $namaObat . '" berhasil dihapus dari katalog!');
-            
         } catch (\Illuminate\Database\QueryException $e) {
             # KEAMANAN DATABASE: Jika obat gagal dihapus karena sedang dipakai di tabel Transaksi (Obat Masuk/Keluar)
             return back()->with('error', 'Gagal: Obat "' . $namaObat . '" tidak bisa dihapus karena memiliki riwayat transaksi di sistem.');
         }
-    }
-
-    # --- FUNGSI UNTUK MENYIMPAN PERUBAHAN PROFIL PETUGAS ---
-    public function updateProfilPetugas(Request $request)
-    {
-        # Ambil data user yang sedang login saat ini
-        $user = Auth::user();
-
-        # Mendapatkan ID Pengguna
-        $idPengguna = $user->id_pengguna ?? $user->id;
-
-        # 1. Validasi inputan form (Ubah nama_pengguna menjadi nama_lengkap)
-        $request->validate([
-            'nama_lengkap' => 'required|string|max:100',
-            'username'     => 'required|string|max:50|unique:pengguna,username,' . $idPengguna . ',id_pengguna',
-        ]);
-
-        # 2. Perbarui data menggunakan Query Builder
-        DB::table('pengguna')
-            ->where('id_pengguna', $idPengguna)
-            ->update([
-                'nama_lengkap' => $request->nama_lengkap, # <--- DISESUAIKAN
-                'username'     => $request->username,
-            ]);
-
-        # 3. Kembalikan ke halaman profil dengan pesan sukses
-        return redirect()->route('petugas.profil')->with('success', 'Data profil berhasil diperbarui!');
     }
 
     # --- FUNGSI UNTUK MENAMPILKAN HALAMAN NOTIFIKASI GLOBAL ---
@@ -1092,5 +1367,84 @@ class DashboardController extends Controller
             ->update(['status_baca' => 'Sudah']);
 
         return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
+    }
+
+    # --- FUNGSI GLOBAL UNTUK MENYIMPAN PROFIL SEMUA PERAN ---
+    public function simpanProfilGlobal(Request $request)
+    {
+        $user = Auth::user();
+        $idPengguna = $user->id_pengguna ?? $user->id;
+
+        # 1. Validasi: Username tidak boleh dipakai orang lain
+        $request->validate([
+            'nama_lengkap' => 'required|string|max:100',
+            'username'     => 'required|string|max:50|unique:pengguna,username,' . $idPengguna . ',id_pengguna',
+        ]);
+
+        # 2. Update data profil
+        DB::table('pengguna')->where('id_pengguna', $idPengguna)->update([
+            'nama_lengkap' => $request->nama_lengkap,
+            'username'     => $request->username,
+        ]);
+
+        # 3. Catat di Log Audit
+        LogAudit::create([
+            'id_pengguna' => $idPengguna,
+            'aktivitas'   => 'Memperbarui data profil pribadi secara mandiri',
+            'alamat_ip'   => request()->ip(),
+            'status'      => 'Success',
+            'created_at'  => now(),
+        ]);
+
+        # 4. Kembalikan ke halaman sebelumnya (apapun role-nya)
+        return back()->with('success', 'Data profil Anda berhasil diperbarui!');
+    }
+
+    # --- FUNGSI EXPORT LAPORAN EXCEL UNTUK KEPALA APOTEK ---
+    public function exportLaporanExcel()
+    {
+        $namaFile = 'Laporan_Stok_SIOPAL_' . date('Y-m-d_H-i') . '.csv';
+
+        // Mengambil data obat beserta sisa stoknya
+        $dataObat = DB::table('obat')
+            ->select('id_obat', 'id_kategori', 'nama_obat', 'dosis', 'satuan_dosis', 'bentuk_sediaan', 'letak_rak', 'batas_stok_min', 'total_stok')
+            ->orderBy('nama_obat', 'asc')
+            ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$namaFile",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($dataObat) {
+            $file = fopen('php://output', 'w');
+
+            // Header Kolom Excel (PENTING: Gunakan titik koma ';' agar rapi di Excel format Indonesia)
+            fputcsv($file, ['ID Obat', 'Nama Obat', 'Kategori', 'Sediaan', 'Letak Rak', 'Batas Minimal', 'Stok Saat Ini', 'Status'], ';');
+
+            // Looping data dari database ke dalam baris Excel
+            foreach ($dataObat as $obat) {
+                // Beri label status otomatis
+                $status = $obat->total_stok <= $obat->batas_stok_min ? 'Menipis (Perlu Restok)' : 'Aman';
+
+                fputcsv($file, [
+                    $obat->id_obat,
+                    $obat->nama_obat,
+                    $obat->id_kategori,
+                    $obat->dosis . ' ' . $obat->satuan_dosis . ' ' . $obat->bentuk_sediaan,
+                    $obat->letak_rak,
+                    $obat->batas_stok_min,
+                    $obat->total_stok,
+                    $status
+                ], ';');
+            }
+            fclose($file);
+        };
+
+        // Stream langsung sebagai file unduhan
+        return response()->stream($callback, 200, $headers);
     }
 }

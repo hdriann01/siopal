@@ -106,6 +106,12 @@ Route::middleware(['auth'])->group(function () {
     # 2. Mengeksekusi tombol "Tandai Semua Dibaca"
     Route::post('/notifikasi/baca-semua', [DashboardController::class, 'bacaSemuaNotifikasi'])->name('notifikasi.baca-semua');
 
+    // Rute Universal Penampung Form Profil
+    Route::post('/simpan-profil-global', [DashboardController::class, 'simpanProfilGlobal']);
+
+    // Rute untuk Export Excel Pusat Laporan
+    Route::get('/export-excel-laporan', [DashboardController::class, 'exportLaporanExcel']);
+
     # =====================================================================
     # 5. GRUP RUTE KEPALA APOTEK (FOLDER AWAL: KEPALA/)
     # =====================================================================
@@ -166,9 +172,18 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/obat/hapus/{id}', [DashboardController::class, 'hapusObat'])->name('obat.hapus');
 
         Route::get('/masuk', [DashboardController::class, 'obatMasuk'])->name('masuk');
+        // Cukup gunakan '/masuk' dan 'simpan-masuk'
+        // karena sistem Group Route sudah otomatis menambahkan kata 'petugas' di depannya
+        Route::post('/masuk', [DashboardController::class, 'simpanObatMasuk'])->name('simpan-masuk');
         Route::get('/keluar', [DashboardController::class, 'obatKeluar'])->name('keluar');
+        Route::post('/keluar', [DashboardController::class, 'simpanObatKeluar'])->name('simpan-keluar');
         Route::get('/opname', [DashboardController::class, 'stokOpname'])->name('opname');
+        Route::post('/opname', [DashboardController::class, 'simpanStokOpname'])->name('simpan-opname');
+        // Rute setelah pemisahan halaman peringatan
+        Route::get('/stok-menipis', [DashboardController::class, 'stokMenipis'])->name('stok-menipis');
+        Route::get('/obat-kedaluwarsa', [DashboardController::class, 'obatKedaluwarsa'])->name('obat-kedaluwarsa');
         // Rute untuk menampilkan halaman (Sudah benar)
         Route::get('/profil', [DashboardController::class, 'profilPetugas'])->name('profil');
+        Route::post('/profil/update', [DashboardController::class, 'updateProfil'])->name('update-profil');
     });
 });
