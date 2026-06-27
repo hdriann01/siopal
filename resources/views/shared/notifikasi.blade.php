@@ -73,7 +73,6 @@
                 @php
                     $isRead = $notif->status_baca == 'Sudah';
 
-                    // PERBAIKAN: Memaksa huruf kecil agar kebal dari kesalahan ketik di database
                     $jenisAsli = trim($notif->tipe);
                     $jenisLower = strtolower($jenisAsli);
 
@@ -94,7 +93,6 @@
                         $titleColor = 'text-on-surface-variant';
                         $timeColor = 'text-outline';
 
-                        // PERBAIKAN LOGIKA PENCARIAN IKON
                         if (str_contains($jenisLower, 'faktur') || str_contains($jenisLower, 'setuju')) {
                             $iconName = 'check_circle';
                         } elseif (str_contains($jenisLower, 'stok') || str_contains($jenisLower, 'aman')) {
@@ -103,7 +101,6 @@
                             $iconName = 'info';
                         }
                     } else {
-                        // JIKA BELUM DIBACA
                         if (str_contains($jenisLower, 'stok') || str_contains($jenisLower, 'aman')) {
                             $cardClass .= 'bg-error text-white shadow-md border border-error';
                             $barClass = 'bg-white/30';
@@ -184,7 +181,6 @@
                         var cardType = String($(this).attr('data-type')).trim().toLowerCase();
                         var cardTitle = String($(this).find('h3').text()).trim().toLowerCase();
 
-                        // Perbaikan Bug: Cek reverse hanya jika cardType tidak kosong!
                         var matchReverse = (cardType !== '' && filterValue.includes(cardType));
 
                         return cardType === filterValue || cardTitle.includes(filterValue) ||

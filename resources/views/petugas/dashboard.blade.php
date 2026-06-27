@@ -116,13 +116,11 @@
                                             ->setTimezone('Asia/Makassar')
                                             ->locale('id');
 
-                                        // Cek apakah data ini hanya berisi tanggal tanpa jam pasti (00:00:00)
                                         if ($waktu->format('H:i:s') === '00:00:00') {
                                             echo $waktu->isToday()
                                                 ? '<span class="text-teal-600 font-medium">Hari ini</span>'
                                                 : $waktu->translatedFormat('d M Y');
                                         } else {
-                                            // Untuk Stok Opname yang memiliki jam persis
                                             echo $waktu->diffForHumans();
                                         }
                                     @endphp

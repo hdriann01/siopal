@@ -2,13 +2,11 @@
 
 @section('content')
     <div class="max-w-4xl mx-auto pb-24 space-y-8">
-        <!-- Header Halaman -->
         <div>
             <h2 class="text-3xl font-display font-bold text-on-surface tracking-tight mb-2">Profil Pengguna</h2>
             <p class="text-on-surface-variant text-sm">Kelola informasi data diri dan kredensial akses sistem Anda.</p>
         </div>
 
-        <!-- Alert Sukses -->
         @if (session('success'))
             <div
                 class="p-4 bg-primary-container text-on-primary-container rounded-lg font-bold flex items-center gap-3 shadow-sm">
@@ -17,7 +15,6 @@
             </div>
         @endif
 
-        <!-- Alert Error Validasi -->
         @if ($errors->any())
             <div class="p-4 bg-error-container text-on-error-container rounded-lg font-bold flex flex-col gap-2 shadow-sm">
                 <div class="flex items-center gap-2">
@@ -32,7 +29,6 @@
             </div>
         @endif
 
-        <!-- Kartu Form Profil -->
         <section
             class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_4px_15px_-3px_rgba(100,116,139,0.04)] overflow-hidden">
             <div class="px-8 py-5 border-b border-outline-variant/50 bg-surface-container-low flex items-center gap-3">
@@ -43,7 +39,6 @@
             <form action="{{ $actionUrl }}" method="POST" class="p-8 space-y-6">
                 @csrf
 
-                <!-- Menampilkan Peran Saja (Lebar Penuh) -->
                 <div>
                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Peran /
                         Akses</label>

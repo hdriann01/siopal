@@ -156,17 +156,15 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
         $(document).ready(function() {
-            let itemIndex = 0; // Penanda urutan array untuk Laravel
+            let itemIndex = 0;
 
             $('#btnTambahItem').click(function() {
-                // 1. Ambil semua nilai dari inputan
                 let idObat = $('#input_obat').val();
                 let namaObat = $('#input_obat option:selected').data('nama');
                 let batch = $('#input_batch').val();
                 let exp = $('#input_exp').val();
                 let jumlah = $('#input_jumlah').val();
 
-                // 2. Validasi: Jangan biarkan input kosong
                 if (!idObat || !batch || !exp || jumlah < 1) {
                     alert(
                         'Mohon lengkapi semua kolom rincian item (Obat, Batch, Exp Date, Jumlah) sebelum menambahkan!'
@@ -174,10 +172,8 @@
                     return;
                 }
 
-                // 3. Hapus tulisan "Belum ada item" jika ini adalah item pertama
                 $('#rowKosong').hide();
 
-                // 4. Buat baris HTML baru untuk ditampilkan di tabel
                 let newRow = `
                     <tr class="border-b border-outline-variant/50 hover:bg-surface-container transition-colors" id="row-${itemIndex}">
                         <td class="py-3 px-6 font-bold text-primary">${namaObat}</td>
@@ -192,7 +188,6 @@
                     </tr>
                 `;
 
-                // 5. Buat input tersembunyi (Hidden Input) untuk dikirim ke Laravel saat Submit
                 let hiddenInputs = `
                     <div id="hidden-${itemIndex}">
                         <input type="hidden" name="items[${itemIndex}][id_obat]" value="${idObat}">
@@ -202,29 +197,25 @@
                     </div>
                 `;
 
-                // 6. Masukkan HTML tadi ke dalam tempatnya masing-masing
                 $('#keranjangBody').append(newRow);
                 $('#hiddenInputsContainer').append(hiddenInputs);
 
-                // 7. Reset kolom inputan agar siap diisi obat selanjutnya
                 $('#input_obat').val('');
                 $('#input_batch').val('');
                 $('#input_exp').val('');
                 $('#input_jumlah').val('1');
 
-                itemIndex++; // Naikkan angka urutan
-                updateBadge(); // Perbarui angka keranjang
-            });
-
-            // 8. Fungsi untuk menghapus item jika Petugas salah input
-            $(document).on('click', '.btnHapus', function() {
-                let id = $(this).data('id');
-                $('#row-' + id).remove(); // Hapus dari tabel visual
-                $('#hidden-' + id).remove(); // Hapus dari form rahasia
+                itemIndex++;
                 updateBadge();
             });
 
-            // 9. Fungsi menghitung ulang isi keranjang
+            $(document).on('click', '.btnHapus', function() {
+                let id = $(this).data('id');
+                $('#row-' + id).remove();
+                $('#hidden-' + id).remove();
+                updateBadge();
+            });
+
             function updateBadge() {
                 let count = $('#keranjangBody tr[id^="row-"]').length;
                 $('#badgeCount').text(count + ' Item');
@@ -234,11 +225,10 @@
                 }
             }
 
-            // 10. Validasi Final sebelum dikirim ke Kepala Apotek
             $('#formObatMasuk').submit(function(e) {
                 let count = $('#keranjangBody tr[id^="row-"]').length;
                 if (count === 0) {
-                    e.preventDefault(); // Hentikan pengiriman
+                    e.preventDefault();
                     alert('Keranjang faktur masih kosong! Silakan tambahkan minimal 1 item obat.');
                 }
             });

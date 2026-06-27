@@ -100,7 +100,6 @@
                 @endphp
 
                 @php
-                    // --- RADAR MINI: Mendeteksi apakah ada notifikasi baru ---
                     $roleRaw = strtolower(Auth::user()->peran ?? '');
                     if ($roleRaw === 'admin' || $roleRaw === 'administrator' || $roleRaw === '1') {
                         $roleNav = 'admin';
@@ -113,7 +112,7 @@
                     $adaNotifBaru = \Illuminate\Support\Facades\DB::table('notifikasi')
                         ->where('untuk_role', $roleNav)
                         ->where('status_baca', 'Belum')
-                        ->exists(); // exists() jauh lebih ringan dari get(), karena hanya mengecek "ada atau tidak"
+                        ->exists();
                 @endphp
 
                 <a href="{{ route('notifikasi.global') }}"

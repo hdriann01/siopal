@@ -118,7 +118,6 @@
     <script>
         $(document).ready(function() {
 
-            // 1. Fitur Filter Rak Dinamis
             $('#filterRak').change(function() {
                 let rak = $(this).val();
                 let url = new URL(window.location.href);
@@ -130,18 +129,15 @@
                 window.location.href = url.toString();
             });
 
-            // 2. Fitur Penghitung Selisih Dinamis
             $('.input-fisik').on('input', function() {
                 let idObat = $(this).data('id');
                 let row = $('#row-' + idObat);
                 let colSelisih = $('#selisih-col-' + idObat);
                 let inputKet = $('#ket-' + idObat);
 
-                // Ambil nilai stok sistem dari atribut HTML
                 let stokSistem = parseInt(row.find('.stok-sistem-val').data('sistem'));
                 let stokFisikStr = $(this).val();
 
-                // Reset ke default jika inputan kosong
                 if (stokFisikStr === '') {
                     row.removeClass('bg-error-container/10 bg-tertiary-container/10');
                     $(this).removeClass('border-error border-tertiary text-error text-tertiary');
@@ -155,7 +151,6 @@
                 let stokFisik = parseInt(stokFisikStr);
                 let selisih = stokFisik - stokSistem;
 
-                // Jika PAS (Tidak ada selisih)
                 if (selisih === 0) {
                     row.removeClass('bg-error-container/10 bg-tertiary-container/10');
                     $(this).removeClass('border-error border-tertiary text-error text-tertiary').addClass(
@@ -163,15 +158,13 @@
 
                     colSelisih.html(
                         '<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-on-surface-variant font-bold">0</span>'
-                        );
+                    );
 
                     inputKet.prop('disabled', true).addClass(
                             'opacity-50 cursor-not-allowed bg-surface-container-low border-transparent')
                         .removeClass('bg-surface border-outline-variant').removeAttr('required').val(
                             'Sesuai');
-                }
-                // Jika KURANG (Minus)
-                else if (selisih < 0) {
+                } else if (selisih < 0) {
                     row.removeClass('bg-tertiary-container/10').addClass('bg-error-container/10');
                     $(this).removeClass('border-outline-variant border-tertiary text-tertiary').addClass(
                         'border-error text-error');
@@ -185,9 +178,7 @@
                     inputKet.prop('disabled', false).removeClass(
                             'opacity-50 cursor-not-allowed bg-surface-container-low border-transparent')
                         .addClass('bg-surface border-outline-variant').prop('required', true).val('');
-                }
-                // Jika LEBIH (Plus)
-                else {
+                } else {
                     row.removeClass('bg-error-container/10').addClass('bg-tertiary-container/10');
                     $(this).removeClass('border-outline-variant border-error text-error').addClass(
                         'border-tertiary text-tertiary');

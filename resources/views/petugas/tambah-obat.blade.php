@@ -1,14 +1,11 @@
 @extends('layouts.petugas')
 
 @section('content')
-    <!-- Pembungkus utama yang bersih (tidak ada lagi p-8 ganda atau w-full) -->
     <div class="flex justify-center items-start pt-4 pb-24">
 
-        <!-- Container Card Form -->
         <div
             class="bg-surface-container-lowest rounded-[12px] shadow-sm w-full max-w-4xl flex flex-col overflow-hidden border border-outline-variant">
 
-            <!-- Header Card -->
             <div
                 class="px-8 py-6 border-b border-outline-variant flex justify-between items-start bg-surface-container-lowest">
                 <div>
@@ -18,17 +15,14 @@
                         katalog inventaris.</p>
                 </div>
 
-                <!-- Tombol X (Kembali ke Katalog) -->
                 <a href="{{ route('petugas.obat') }}"
                     class="text-outline hover:text-error transition-colors rounded-full p-2 hover:bg-error-container/20">
                     <span class="material-symbols-outlined text-[24px]">close</span>
                 </a>
             </div>
 
-            <!-- Body Form -->
             <div class="px-8 py-8 bg-surface-container-lowest overflow-y-auto">
 
-                <!-- Menampilkan Error Validasi Jika Ada -->
                 @if ($errors->any())
                     <div
                         class="mb-6 p-4 bg-error-container/20 border-l-4 border-error text-on-error-container rounded shadow-sm">
@@ -44,7 +38,6 @@
                     class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
                     @csrf
 
-                    <!-- Nama Obat -->
                     <div class="col-span-1">
                         <label class="block text-sm font-bold text-on-surface mb-2" for="nama_obat">Nama Obat <span
                                 class="text-error">*</span></label>
@@ -53,7 +46,6 @@
                             class="block w-full rounded-lg border-outline-variant bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-shadow" />
                     </div>
 
-                    <!-- Kategori Obat (Dinamis dari Database) -->
                     <div class="col-span-1">
                         <label class="block text-sm font-bold text-on-surface mb-2" for="id_kategori">Kategori Obat <span
                                 class="text-error">*</span></label>
@@ -75,17 +67,14 @@
                         </div>
                     </div>
 
-                    <!-- Kombinasi Dosis & Satuan -->
                     <div class="col-span-1">
                         <label class="block text-sm font-bold text-on-surface mb-2">Kekuatan Dosis <span
                                 class="text-error">*</span></label>
                         <div class="flex gap-2">
-                            <!-- Input Angka Dosis -->
                             <input type="number" id="dosis" name="dosis" value="{{ old('dosis') }}" required
                                 placeholder="Contoh: 500"
                                 class="block w-2/3 rounded-lg border-outline-variant bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-shadow" />
 
-                            <!-- Dropdown Satuan -->
                             <div class="relative w-1/3">
                                 <select id="satuan_dosis" name="satuan_dosis" required
                                     class="block w-full appearance-none bg-none rounded-lg border-outline-variant bg-surface-container-low pl-3 pr-8 py-3 text-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none cursor-pointer transition-shadow">
@@ -104,7 +93,6 @@
                         </div>
                     </div>
 
-                    <!-- Bentuk Sediaan -->
                     <div class="col-span-1">
                         <label class="block text-sm font-bold text-on-surface mb-2" for="bentuk_sediaan">Bentuk Sediaan
                             <span class="text-error">*</span></label>
@@ -132,7 +120,6 @@
                         </div>
                     </div>
 
-                    <!-- Letak Rak -->
                     <div class="col-span-1">
                         <label class="block text-sm font-bold text-on-surface mb-2" for="letak_rak">Letak Rak</label>
                         <input type="text" id="letak_rak" name="letak_rak" value="{{ old('letak_rak') }}"
@@ -140,7 +127,6 @@
                             class="block w-full rounded-lg border-outline-variant bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-shadow" />
                     </div>
 
-                    <!-- Batas Stok Minimum -->
                     <div class="col-span-1">
                         <label class="block text-sm font-bold text-on-surface mb-2" for="batas_stok_min">Batas Stok Minimum
                             <span class="text-error">*</span></label>
@@ -153,10 +139,8 @@
                         </p>
                     </div>
 
-                    <!-- Spacer untuk merapikan grid footer -->
                     <div class="col-span-1 md:col-span-2 hidden md:block border-b border-outline-variant my-2"></div>
 
-                    <!-- Tombol Aksi Bawah -->
                     <div class="col-span-1 md:col-span-2 flex justify-end gap-4 mt-2">
                         <a href="{{ route('petugas.obat') }}"
                             class="px-6 py-2.5 text-sm font-bold text-on-surface-variant border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors focus:outline-none focus:ring-2 focus:ring-outline">

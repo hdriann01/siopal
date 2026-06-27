@@ -159,13 +159,11 @@
         </div>
     </div>
 
-    <!-- CUSTOM MODAL HAPUS (Hidden by default) -->
     <div id="deleteModal"
         class="fixed inset-0 z-50 hidden bg-on-surface/40 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
         <div id="deleteModalContent"
             class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-300">
             <div class="p-6 text-center">
-                <!-- Ikon Warning Merah -->
                 <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-error-container mb-5">
                     <span class="material-symbols-outlined text-[32px] text-error"
                         style="font-variation-settings: 'FILL' 1;">warning</span>
@@ -177,13 +175,11 @@
                     katalog? Tindakan ini tidak dapat dibatalkan.
                 </p>
 
-                <!-- Tombol Aksi Modal -->
                 <div class="flex gap-3 justify-center">
                     <button type="button" onclick="closeDeleteModal()"
                         class="flex-1 px-4 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-semibold text-sm">
                         Batal
                     </button>
-                    <!-- Form eksekusi hapus sesungguhnya -->
                     <form id="deleteForm" method="POST" action="" class="flex-1">
                         @csrf
                         @method('DELETE')
@@ -197,7 +193,6 @@
         </div>
     </div>
 
-    <!-- SCRIPT UNTUK MENGENDALIKAN MODAL -->
     <script>
         function openDeleteModal(idObat, namaObat) {
             const modal = document.getElementById('deleteModal');
@@ -205,17 +200,12 @@
             const deleteForm = document.getElementById('deleteForm');
             const deleteObjectName = document.getElementById('deleteObjectName');
 
-            // 1. Ganti nama obat di dalam teks modal
             deleteObjectName.textContent = namaObat;
 
-            // 2. Set action URL pada form secara dinamis menggunakan ID yang dipilih
-            // Kita generate base url dari Laravel lalu me-replace kata kunci dengan ID asli
             let baseUrl = "{{ route('petugas.obat.hapus', ':id') }}";
             deleteForm.action = baseUrl.replace(':id', idObat);
 
-            // 3. Tampilkan modal dengan animasi fade in & scale up
             modal.classList.remove('hidden');
-            // Sedikit delay (setTimeout 10ms) agar transisi CSS terbaca oleh browser
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
                 modalContent.classList.remove('scale-95');
@@ -227,12 +217,10 @@
             const modal = document.getElementById('deleteModal');
             const modalContent = document.getElementById('deleteModalContent');
 
-            // 1. Jalankan animasi fade out & scale down
             modal.classList.add('opacity-0');
             modalContent.classList.remove('scale-100');
             modalContent.classList.add('scale-95');
 
-            // 2. Sembunyikan div sepenuhnya setelah animasi selesai (300ms)
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 300);

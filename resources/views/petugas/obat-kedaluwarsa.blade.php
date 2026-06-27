@@ -31,14 +31,11 @@
                     <tbody class="text-sm divide-y divide-gray-100">
                         @forelse($akanKedaluwarsa as $item)
                             @php
-                                // Set kedua waktu ke 00:00:00 agar selisihnya murni hanya tanggal bulat
                                 $tglED = \Carbon\Carbon::parse($item->tgl_kadaluwarsa)->startOfDay();
                                 $hariIni = \Carbon\Carbon::now()->startOfDay();
 
-                                // Cek apakah tanggal ED sudah lewat dari hari ini
                                 $isExpired = $tglED->isBefore($hariIni);
 
-                                // Dapatkan angka bulat absolut selisih hari
                                 $sisaHari = (int) $hariIni->diffInDays($tglED);
                             @endphp
                             <tr class="{{ $isExpired ? 'bg-red-50/50' : 'hover:bg-red-50/30' }} transition-colors">

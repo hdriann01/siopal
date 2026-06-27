@@ -249,15 +249,12 @@
     </script>
     <script>
         function autoFillBatch() {
-            // Tangkap elemen select dan input dengan ID yang selaras dengan jQuery
             const selectObat = document.getElementById('input_obat');
             const inputBatch = document.getElementById('input_batch');
 
-            // Baca atribut data-batch dari obat yang sedang diklik
             const selectedOption = selectObat.options[selectObat.selectedIndex];
             const batchOtomatis = selectedOption.getAttribute('data-batch');
 
-            // Isi otomatis ke kolom Nomor Batch
             if (batchOtomatis) {
                 inputBatch.value = batchOtomatis;
             } else {

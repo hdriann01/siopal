@@ -131,7 +131,6 @@
 
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
         <script>
-            // Menangkap data dari controller
             const dataDefecta = @json($dataDefecta);
 
             const options = {
@@ -150,18 +149,18 @@
                 plotOptions: {
                     bar: {
                         borderRadius: 4,
-                        horizontal: true, // Mengubah grafik menjadi mendatar
-                        distributed: true, // Membuat setiap batang memiliki warna berbeda
+                        horizontal: true,
+                        distributed: true,
                         dataLabels: {
                             position: 'bottom'
                         }
                     }
                 },
                 colors: [
-                    '#10B981', // Hijau (Aman)
-                    '#F59E0B', // Kuning/Amber (Peringatan)
-                    '#F97316', // Oranye (Kritis)
-                    '#EF4444' // Merah (Kedaluwarsa)
+                    '#10B981',
+                    '#F59E0B',
+                    '#F97316',
+                    '#EF4444'
                 ],
                 dataLabels: {
                     enabled: true,
@@ -185,16 +184,15 @@
                     }
                 },
                 xaxis: {
-                    // Kategori sumbu Y (karena horizontal)
                     categories: ['Aman (> 6 Bulan)', 'Peringatan (3-6 Bulan)', 'Kritis (< 3 Bulan)', 'Kedaluwarsa'],
                     labels: {
                         formatter: function(val) {
-                            return Math.round(val); // Membulatkan angka agar tidak ada desimal
+                            return Math.round(val);
                         }
                     }
                 },
                 legend: {
-                    show: false // Disembunyikan karena label sudah ada di sebelah kiri batang
+                    show: false
                 },
                 tooltip: {
                     theme: 'light',
