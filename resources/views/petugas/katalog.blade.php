@@ -129,7 +129,6 @@
                                             <span class="material-symbols-outlined text-[18px]">edit</span>
                                         </a>
 
-                                        <!-- Tombol Hapus memanggil fungsi JS -->
                                         <button type="button"
                                             onclick="openDeleteModal('{{ $obat->id_obat }}', '{{ $obat->nama_obat }}')"
                                             class="p-1.5 text-outline hover:text-error hover:bg-error-container/50 rounded-md transition-colors"

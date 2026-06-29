@@ -67,7 +67,6 @@
                                         <span class="text-on-surface-variant font-bold flex items-center gap-2">
                                             <span class="stok-sistem-val"
                                                 data-sistem="{{ $obat->total_stok }}">{{ $obat->total_stok }}</span>
-                                            <span class="text-xs font-normal">{{ $obat->satuan_dosis }}</span>
                                         </span>
                                     </td>
                                     <td class="py-4 px-6">

@@ -1116,7 +1116,7 @@ class DashboardController extends Controller
         });
 
         # Alihkan ke dashboard utama petugas saat transaksi kelar
-        return redirect()->route('petugas.dashboard')->with('success', 'Transaksi pengeluaran obat berhasil dicatat!');
+        return redirect()->route('petugas.keluar')->with('success', 'Transaksi pengeluaran obat berhasil dicatat!');
     }
 
     # --- FUNGSI UNTUK MEMBUKA LEMBAR AUDIT FISIK (STOK OPNAME / HITUNG MANUAL) ---
@@ -1213,7 +1213,7 @@ class DashboardController extends Controller
         }
 
         # Jika sukses potong-tambah di banyak jenis, tampilkan perayaan sukses normal
-        return redirect()->route('petugas.dashboard')->with('success', 'Audit Stok Opname selesai! Data stok telah disinkronkan dengan fisik.');
+        return redirect()->route('petugas.opname')->with('success', 'Audit Stok Opname selesai! Data stok telah disinkronkan dengan fisik.');
     }
 
     # --- FUNGSI UNTUK PROFIL KHUSUS PANGKAT PETUGAS APOTEK ---
