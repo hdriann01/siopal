@@ -127,7 +127,7 @@
                     </div>
 
                     <button class="w-full bg-primary text-on-primary py-3.5 px-6 rounded-lg font-bold hover:bg-primary-container active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2" type="submit">
-                        Masuk ke Sistem
+                        Masuk
                         <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
                     </button>
                 </form>
