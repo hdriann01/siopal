@@ -1541,7 +1541,6 @@ class DashboardController extends Controller
             fclose($file);
         };
 
-        # Lakukan tembakan akhir Stream perpaduan isi callback dengan surat paksaan download Header tadi ke depan layar komputer Kepala Apotek (dengan status HTTP sukses / 200)
         return response()->stream($callback, 200, $headers);
     }
 }
